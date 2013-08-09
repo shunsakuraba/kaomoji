@@ -31,9 +31,9 @@ let eval expr input =
 	      match op with 
 		  Not -> lognot v
 		| Shl1 -> shift_left v 1
-		| Shr1 -> shift_right v 1
-		| Shr4 -> shift_right v 4
-		| Shr16 -> shift_right v 16
+		| Shr1 -> shift_right_logical v 1
+		| Shr4 -> shift_right_logical v 4
+		| Shr16 -> shift_right_logical v 16
 	    end
 	  | Op2 (op, e1, e2) ->
 	    let v1 = eval input env e1 in

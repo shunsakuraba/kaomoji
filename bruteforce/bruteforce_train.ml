@@ -21,7 +21,7 @@ let main =
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
   let (status, outputs, message) = eval_id id initialguess in
-  if status != "ok" then
+  if status <> "ok" then
     begin
       Printf.printf "Status: \"%s\"\n" status;
       failwith "Eval returned error"
