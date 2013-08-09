@@ -105,11 +105,14 @@ USE_OCAMLFIND = true
 OCAMLPACKS[] =
   http
   yojson
+  netclient
 
 #
 # Include path
 #
 # OCAMLINCLUDES +=
+
+OCAMLINCLUDES += ../common
 
 #
 # Compile native or byte code? 
@@ -165,4 +168,6 @@ OCAMLPACKS[] =
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-.DEFAULT: $(OCamlProgram parse, parse)
+OCAML_LIBS += ../common/common
+
+.DEFAULT: $(OCamlProgram parse, parse) $(OCamlProgram fetch, fetch) $(OCamlProgram train, train)
