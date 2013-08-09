@@ -1,5 +1,6 @@
 open Api
 open Train
+open Remoteeval
 
 let rand64 () = 
   let bit32 = Int64.shift_left 1L 32 in
