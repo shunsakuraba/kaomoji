@@ -176,5 +176,7 @@ LIB = common
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
+.PHONY: clean
+
 clean:	
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
