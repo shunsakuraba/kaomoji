@@ -157,6 +157,7 @@ FILES[] =
    api
    problem
    train
+   remoteeval
 
 LIB = common
 
