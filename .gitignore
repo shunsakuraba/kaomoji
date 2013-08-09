@@ -13,7 +13,12 @@
 *.opt
 _build
 bruteforce/main
+bruteforce/brute
 bruteforce/main.native
 parser/dump_json
 parser/fetch
-
+parser/fetch_problems
+parser/train
+parser/train_fetch_example
+parser/train_guess_example
+parser/train_solve_example
