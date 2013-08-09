@@ -101,54 +101,6 @@ let parse_problems_json = function
   | _ -> raise Parse_error
 ;;
 
-let scan_train_kv_list kv_list =
-  let id = ref "" in
-  let size = ref 0 in
-  let operators = ref ([], [], []) in
-  let challenge = ref "" in
-
-  let parse_kv (key, value) =
-    if key = "id" then
-      match value with
-          `String(s) -> id := s
-        | _ ->
-          print_endline "no";
-          raise Parse_error
-    else if key = "size" then
-      match value with
-          `Int(i) -> size := i
-        | _ ->
-          print_endline "no";
-          raise Parse_error
-    else if key = "operators" then
-      match value with
-          `List(l) -> operators := parse_operator_string_list l
-        | _ ->
-          print_endline "no";
-          raise Parse_error
-    else if key = "challenge" then
-      match value with
-          `String(s) -> challenge := s
-        | _ ->
-          print_endline "c";
-          raise Parse_error
-    else
-      raise Parse_error in
-
-  List.iter parse_kv kv_list;
-  (!id, !size, !operators, !challenge)
-;;
-
-let parse_train_string s =
-  let train_json = Yojson.Safe.from_string s in
-  match train_json with
-    | `Assoc(kv_list) ->
-      scan_train_kv_list kv_list
-    | _ ->
-      print_endline "b";
-      raise Parse_error
-;;
-
 let format_train (id, size, operators, challenge) index =
   Printf.sprintf
     "%4d %s: %2d %s %s"
@@ -208,20 +160,6 @@ let parse_eval_result_string s =
 let fetch_problems () =
   let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
   Http_user_agent.get problem_url
-;;
-
-let fetch_train size operators =
-  let problem_url = api_site ^ "/train?auth=" ^ auth in
-  let call =
-    new Http_client.post_raw
-      problem_url
-      (Yojson.Safe.to_string
-         (`Assoc([("size", `Int(size));
-                  ("operators", `String(operators))]))) in
-  let pipeline = new Http_client.pipeline in
-  pipeline # add call;
-  pipeline # run();
-  call # response_body # value
 ;;
 
 let eval_id id arguments =

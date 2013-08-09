@@ -15,52 +15,46 @@ let fetch_train size operators =
   call # response_body # value
 ;;
 
-let scan_train_kv_list kv_list =
-  let id = ref "" in
-  let size = ref 0 in
-  let operators = ref ([], [], []) in
-  let challenge = ref "" in
-
-  let parse_kv (key, value) =
-    if key = "id" then
-      match value with
-          `String(s) -> id := s
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "size" then
-      match value with
-          `Int(i) -> size := i
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "operators" then
-      match value with
-          `List(l) -> operators := parse_operator_string_list l
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "challenge" then
-      match value with
-          `String(s) -> challenge := s
-        | _ ->
-          print_endline "c";
-          raise Not_found
-    else
-      raise Not_found in
-
-  List.iter parse_kv kv_list;
-  (!id, !size, !operators, !challenge)
-;;
-
 let parse_train_string s =
+  let scan_train_kv_list kv_list =
+    let id = ref "" in
+    let size = ref 0 in
+    let operators = ref ([], [], []) in
+    let challenge = ref "" in
+
+    let parse_kv (key, value) =
+      if key = "id" then
+        match value with
+            `String(s) -> id := s
+          | _ ->
+            raise Parse_error
+      else if key = "size" then
+        match value with
+            `Int(i) -> size := i
+          | _ ->
+            raise Parse_error
+      else if key = "operators" then
+        match value with
+            `List(l) -> operators := parse_operator_string_list l
+          | _ ->
+            raise Parse_error
+      else if key = "challenge" then
+        match value with
+            `String(s) -> challenge := s
+          | _ ->
+            raise Parse_error
+      else
+        raise Parse_error in
+
+    List.iter parse_kv kv_list;
+    (!id, !size, !operators, !challenge) in
+
   let train_json = Yojson.Safe.from_string s in
   match train_json with
     | `Assoc(kv_list) ->
       scan_train_kv_list kv_list
     | _ ->
-      print_endline "b";
-      raise Not_found
+      raise Parse_error
 ;;
 
 let format_train (id, size, (unops, binops, statements), challenge) index =
