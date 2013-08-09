@@ -21,7 +21,7 @@ let main =
 exception Again
 
 let main = 
-  let core_problem = Remote.fetch_one_core_problem 12 "tfold" "train" in
+  let core_problem = Remote.fetch_one_core_problem 3 "" "real" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess = 
