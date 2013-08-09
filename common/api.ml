@@ -254,7 +254,11 @@ let eval_program program_string arguments =
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  parse_eval_result_string (call # response_body # value)
+  let status = call # response_status_text in
+  let result = call # response_body # value in
+  print_endline status;
+  print_endline result;
+  parse_eval_result_string result
 ;;
 
 
@@ -323,5 +327,9 @@ let guess id program_string =
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  call # response_body # value
+  let status = call # response_status_text in
+  let result = call # response_body # value in
+  print_endline status;
+  print_endline result;
+  parse_guess_result_string result
 ;;
