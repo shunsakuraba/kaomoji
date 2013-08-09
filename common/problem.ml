@@ -31,10 +31,7 @@ let parse_problem_json j =
           | _ ->
             raise Parse_error
       else if key = "timeLeft" then
-        match value with
-            `Float(s) -> ()
-          | _ ->
-            raise Parse_error
+	()
       else
         raise Parse_error in
 
