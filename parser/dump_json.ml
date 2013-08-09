@@ -11,6 +11,6 @@ let sorted_problems =
       else x_size - y_size)
     problems in
 List.iteri
-  (fun i x -> print_problem x i)
+  (fun i x -> print_endline (format_problem x i))
   sorted_problems
 ;;

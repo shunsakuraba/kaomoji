@@ -82,19 +82,17 @@ let parse_problem_json = function
     raise Not_found
 ;;
 
-let print_problem (id, size, (unops, binops, statements), solved, time_left) index =
-  let problem_string =
-    Printf.sprintf
-      "%4d %s: %d [%s] [%s] [%s] %s %s"
-      index
-      id
-      size
-      (String.concat "," (List.map unop_to_string unops))
-      (String.concat "," (List.map binop_to_string binops))
-      (String.concat "," (List.map statement_to_string statements))
-      (if solved then "T" else "F")
-      time_left in
-  print_endline problem_string
+let format_problem (id, size, (unops, binops, statements), solved, time_left) index =
+  Printf.sprintf
+    "%4d %s: %d [%s] [%s] [%s] %s %s"
+    index
+    id
+    size
+    (String.concat "," (List.map unop_to_string unops))
+    (String.concat "," (List.map binop_to_string binops))
+    (String.concat "," (List.map statement_to_string statements))
+    (if solved then "T" else "F")
+    time_left
 ;;
 
 let parse_problems_json = function
@@ -119,4 +117,64 @@ let fetch_train size operators =
 let fetch_problems () =
   let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
   Http_user_agent.get problem_url
+;;
+
+let scan_train_kv_list kv_list =
+  let id = ref "" in
+  let size = ref 0 in
+  let operators = ref ([], [], []) in
+  let challenge = ref "" in
+
+  let parse_kv (key, value) =
+    if key = "id" then
+      match value with
+          `String(s) -> id := s
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "size" then
+      match value with
+          `Int(i) -> size := i
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "operators" then
+      match value with
+          `List(l) -> operators := parse_operator_string_list l
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "challenge" then
+      match value with
+          `String(s) -> challenge := s
+        | _ ->
+          print_endline "c";
+          raise Not_found
+    else
+      raise Not_found in
+
+  List.iter parse_kv kv_list;
+  (!id, !size, !operators, !challenge)
+;;
+
+let parse_train_string s =
+  let train_json = Yojson.Safe.from_string s in
+  match train_json with
+    | `Assoc(kv_list) ->
+      scan_train_kv_list kv_list
+    | _ ->
+      print_endline "b";
+      raise Not_found
+;;
+
+let format_train (id, size, (unops, binops, statements), challenge) index =
+  Printf.sprintf
+    "%4d %s: %d [%s] [%s] [%s] %s"
+    index
+    id
+    size
+    (String.concat "," (List.map unop_to_string unops))
+    (String.concat "," (List.map binop_to_string binops))
+    (String.concat "," (List.map statement_to_string statements))
+    challenge
 ;;
