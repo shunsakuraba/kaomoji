@@ -162,3 +162,6 @@
 .SUBDIRS: common parser
 
 .PHONY: all clean
+
+clean:	
+	rm -f *~ *.omc

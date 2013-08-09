@@ -1,6 +1,6 @@
 open Api;;
 
-let problem_json = Yojson.Safe.from_file "problems.json" in
+let problem_json = Yojson.Safe.from_channel stdin in
 let problems = parse_problems_json problem_json in
 let sorted_problems =
   List.sort
