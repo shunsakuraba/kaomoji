@@ -144,16 +144,26 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	  List.iter (fun part ->
 	    match part with
 		[d1; d2] ->
+                  if d1 > d2 then () else
 		  List.iter
-                    (fun op ->
-                      let new_unused = unused land (lnot (unused_bin_bit op)) in
-		        List.iter
-                          (fun (x, x_used) ->
-		            List.iter
-                              (fun (y, y_used) -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands)
-		              (gen input_shadowed nid (new_unused land (lnot x_used)) d2))
-		          (gen input_shadowed nid 0 d1))
-                    allowed_bin
+                    (fun (x, x_used) ->
+		      List.iter
+                        (fun (y, y_used) ->
+		          List.iter
+                            (fun op -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands)
+                            allowed_bin)
+                        (gen input_shadowed nid 0 d2))
+	            (gen input_shadowed nid 0 d1)
+		  (* List.iter *)
+                  (*   (fun op -> *)
+                  (*     let new_unused = unused land (lnot (unused_bin_bit op)) in *)
+		  (*       List.iter *)
+                  (*         (fun (x, x_used) -> *)
+		  (*           List.iter *)
+                  (*             (fun (y, y_used) -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands) *)
+		  (*             (gen input_shadowed nid (new_unused land (lnot x_used)) d2)) *)
+		  (*         (gen input_shadowed nid 0 d1)) *)
+                  (*   allowed_bin *)
 	      | _ -> failwith "partition bugged")
 	    partitions;
 	  !cands
