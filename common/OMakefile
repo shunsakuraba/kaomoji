@@ -156,6 +156,7 @@ FILES[] =
    print
    api
    problem
+   train
 
 LIB = common
 
