@@ -1,3 +1,5 @@
+open Remoteguess
+
 let rand64 () = 
   let bit32 = Int64.shift_left 1L 32 in
   Int64.logxor 
@@ -47,16 +49,16 @@ let main =
 	let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
 	print_endline message;
 	match status with
-	    "win" -> Feedback.Success
-	  | "mismatch" -> 
+	    GuessStatusWin -> Feedback.Success
+	  | GuessStatusMismatch -> 
 	    begin
 	      match values with
 		  [input; output; _youroutput] -> 
 		    Feedback.Fail (input, output)
 		| _ -> failwith "Should not happen: not three values"
 	    end
-	  | "error" -> raise Again
-	  | st -> failwith "Unknown status: \" ^ st ^ \""
+	  | GuessStatusError -> raise Again
+	  | st -> failwith "Unknown status."
       in
       try guess_submit ()
       with Again -> (Unix.sleep 20; guess_function x)

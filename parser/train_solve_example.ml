@@ -13,4 +13,5 @@ let _ = Remote.guess id "(lambda (x) (not 1))" in
 let id, _, _, challenge = train in
 let guess_result = Remote.guess id challenge in
 let status, _, message, _ = guess_result in
-print_endline (Printf.sprintf "%s %s" status message)
+let status_string = Remoteguess.print_guess_status status in
+print_endline (Printf.sprintf "%s %s" status_string message)

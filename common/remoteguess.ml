@@ -1,6 +1,29 @@
+type guess_status = GuessStatusWin | GuessStatusMismatch |
+    GuessStatusError | GuessStatusInvalid;;
+
+let parse_guess_status s =
+  if s = "win" then
+    GuessStatusWin
+  else if s = "mismatch" then
+    GuessStatusMismatch
+  else if s = "error" then
+    GuessStatusError
+  else
+    GuessStatusInvalid
+
+let print_guess_status s =
+  if s = GuessStatusWin then
+    "win"
+  else if s = GuessStatusMismatch then
+    "mismatch"
+  else if s = GuessStatusError then
+    "error"
+  else
+    "invalid"
+
 let parse_guess_result_string s =
   let scan_guess_result_kv_list kv_list =
-    let status = ref "" in
+    let status = ref GuessStatusInvalid in
     let values = ref [] in
     let message = ref "" in
     let lightning = ref false in
@@ -8,7 +31,7 @@ let parse_guess_result_string s =
     let parse_kv (key, value) =
       if key = "status" then
         match value with
-            `String(s) -> status := s
+            `String(s) -> status := parse_guess_status s
           | _ ->
             raise Api.Parse_error
       else if key = "values" then
