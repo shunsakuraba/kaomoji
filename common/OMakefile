@@ -19,7 +19,7 @@
 # You will usually need to modify this file for your project.
 
 # Delete this line once you have configured this file
-eprintln($(CWD)/OMakefile is not configured)
+#eprintln($(CWD)/OMakefile is not configured)
 
 ########################################################################
 # Phony targets are scoped, so you probably want to declare them first.
@@ -172,5 +172,5 @@ LIB = common
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-clean:
-	rm -f *~ *.opt *.cmi *.cmx *.o *.omc
+clean:	
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
