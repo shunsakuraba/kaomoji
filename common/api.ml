@@ -232,7 +232,7 @@ let eval_id id arguments =
       url
       (Yojson.Safe.to_string
          (`Assoc([("id", `String(id));
-                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%x" x)) arguments))]))) in
+                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
@@ -250,7 +250,7 @@ let eval_program program_string arguments =
       url
       (Yojson.Safe.to_string
          (`Assoc([("program", `String(program_string));
-                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%x" x)) arguments))]))) in
+                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
