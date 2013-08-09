@@ -59,6 +59,7 @@ let format_problem (id, size, operators, solved, time_left) index =
     time_left
 
 let fetch_problems () =
+  print_endline "Fetching problems";
   let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
   Http_user_agent.get problem_url
 

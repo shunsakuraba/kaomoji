@@ -52,6 +52,7 @@ let format_train (id, size, operators, challenge) index =
     challenge
 
 let fetch_train size operators =
+  print_endline "Fetching trains";
   let url = api_site ^ "/train?auth=" ^ auth in
   let call =
     new Http_client.post_raw
