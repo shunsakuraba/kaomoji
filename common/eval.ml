@@ -20,7 +20,7 @@ let eval expr input =
 	    let es = eval input env estart in
 	    let now = ref es in
 	    for i = 0 to 7 do
-	      let cur = logand (shift_right xin (i * 8)) 0x0fL in
+	      let cur = logand (shift_right_logical xin (i * 8)) 0xffL in
 	      let newnow = eval input ((byteid, cur)::(curid, !now)::env) e2 in
 	      now := newnow
 	    done;
@@ -31,9 +31,9 @@ let eval expr input =
 	      match op with 
 		  Not -> lognot v
 		| Shl1 -> shift_left v 1
-		| Shr1 -> shift_right v 1
-		| Shr4 -> shift_right v 4
-		| Shr16 -> shift_right v 16
+		| Shr1 -> shift_right_logical v 1
+		| Shr4 -> shift_right_logical v 4
+		| Shr16 -> shift_right_logical v 16
 	    end
 	  | Op2 (op, e1, e2) ->
 	    let v1 = eval input env e1 in
