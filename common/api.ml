@@ -101,3 +101,22 @@ let parse_problems_json = function
   | `List(l) -> List.map parse_problem_json l
   | _ -> raise Not_found
 ;;
+
+let fetch_train size operators =
+  let problem_url = api_site ^ "/train?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      problem_url
+      (Yojson.Safe.to_string
+         (`Assoc([("size", `Int(size));
+                  ("operators", `String(operators))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  call # response_body # value
+;;
+
+let fetch_problems () =
+  let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
+  Http_user_agent.get problem_url
+;;
