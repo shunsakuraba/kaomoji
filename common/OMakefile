@@ -152,6 +152,8 @@ OCAMLPACKS[] =
 
 FILES[] =
    type
+   eval
+   print
    api
 
 LIB = common
