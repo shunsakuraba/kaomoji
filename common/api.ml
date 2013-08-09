@@ -178,3 +178,146 @@ let format_train (id, size, (unops, binops, statements), challenge) index =
     (String.concat "," (List.map statement_to_string statements))
     challenge
 ;;
+
+let scan_eval_result_kv_list kv_list =
+  let status = ref "" in
+  let outputs = ref [] in
+  let message = ref "" in
+
+  let parse_kv (key, value) =
+    if key = "status" then
+      match value with
+          `String(s) -> status := s
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "message" then
+      match value with
+          `String(s) -> message := s
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "outputs" then
+      match value with
+          `List(l) ->
+            outputs := List.map
+              (fun x -> match x with
+                | `String(s) -> s
+                | _ -> raise Not_found)
+              l
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else
+      raise Not_found in
+
+  List.iter parse_kv kv_list;
+  (!status, !outputs, !message)
+;;
+
+let parse_eval_result_string s =
+  let json = Yojson.Safe.from_string s in
+  match json with
+    | `Assoc(kv_list) ->
+      scan_eval_result_kv_list kv_list
+    | _ ->
+      print_endline "b";
+      raise Not_found
+;;
+
+let eval_id id arguments =
+  let url = api_site ^ "/eval?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      url
+      (Yojson.Safe.to_string
+         (`Assoc([("id", `String(id));
+                  ("arguments", `List(List.map (fun x -> `String(string_of_int x)) arguments))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  parse_eval_result_string (call # response_body # value)
+;;
+
+let eval_program program_string arguments =
+  let url = api_site ^ "/eval?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      url
+      (Yojson.Safe.to_string
+         (`Assoc([("program", `String(program_string));
+                  ("arguments", `List(List.map (fun x -> `String(string_of_int x)) arguments))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  parse_eval_result_string (call # response_body # value)
+;;
+
+
+
+let scan_guess_result_kv_list kv_list =
+  let status = ref "" in
+  let values = ref [] in
+  let message = ref "" in
+  let lightning = ref false in
+
+  let parse_kv (key, value) =
+    if key = "status" then
+      match value with
+          `String(s) -> status := s
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "values" then
+      match value with
+          `List(l) ->
+            values := List.map
+              (fun x -> match x with
+                | `String(s) -> s
+                | _ -> raise Not_found)
+              l
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "message" then
+      match value with
+          `String(s) -> message := s
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else if key = "lightning" then
+      match value with
+          `Bool(b) -> lightning := b
+        | _ ->
+          print_endline "no";
+          raise Not_found
+    else
+      raise Not_found in
+
+  List.iter parse_kv kv_list;
+  (!status, !values, !message, !lightning)
+;;
+
+let parse_guess_result_string s =
+  let json = Yojson.Safe.from_string s in
+  match json with
+    | `Assoc(kv_list) ->
+      scan_guess_result_kv_list kv_list
+    | _ ->
+      print_endline "b";
+      raise Not_found
+;;
+
+let guess id program_string =
+  let url = api_site ^ "/guess?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      url
+      (Yojson.Safe.to_string
+         (`Assoc([("id", `String(id));
+                  ("program", `String(program_string))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  call # response_body # value
+;;

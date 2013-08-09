@@ -153,12 +153,17 @@ OCAMLINCLUDES += ../common
 # Build an OCaml program
 #
 
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] =
+  netclient
+  http
+  yojson
+
 FILES[] =
-   main
-   eval
+   bruteforce_train
    brute
    guess
-   print
 
 PROGRAM = brute
 
@@ -174,6 +179,6 @@ PROGRAM = brute
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-OCAML_LIBS += ../common/common
+OCAML_LIBS += ../common/common 
 
 .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) 
