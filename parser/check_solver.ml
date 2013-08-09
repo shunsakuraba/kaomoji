@@ -25,10 +25,13 @@ let rec consume () =
     print_endline (id ^ "\n  " ^ (format_operator_tuple (unops, binops, statements)) ^ "\n  " ^ (string_of_int size)^ "\n  original: " ^ challenge ^ "\n  guess:    " ^ (Print.print x) ^ "\n  answer:   " ^ (Print.print answer));
     Feedback.Success
   in
+  let allowed = (unops, binops, statements) in
+  let alllist = Brute.gen allowed size in
   GuessCaller.guess_call
     (List.combine initialguess outputs)
     guess_function
-    (unops, binops, statements)
-    size;
+    allowed
+    size
+    alllist;
   consume () in
 consume ()

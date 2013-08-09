@@ -3,9 +3,7 @@ open Feedback
 let filter_by_guess input output expr =
   Eval.eval expr input = output
   
-let guess_call initial feedback allowed depth = 
-  let alllist = Brute.gen allowed depth in
-  let () = Printf.printf "Initialized candidate list (%d elements)\n" (List.length alllist) in
+let guess_call initial feedback allowed depth alllist = 
   (* let () = List.iter (fun x -> print_endline (Print.print x)) alllist in *)
   let initiallist = 
     List.fold_left

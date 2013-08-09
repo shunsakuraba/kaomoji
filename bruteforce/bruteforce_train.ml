@@ -21,7 +21,7 @@ let main =
 exception Again
 
 let main = 
-  let core_problem = Remote.fetch_one_core_problem 3 "" "real" in
+  let core_problem = Remote.fetch_one_core_problem 13 "" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess = 
@@ -33,6 +33,11 @@ let main =
 	(Array.init 192
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
+  let allowed = (unops, binops, statements) in
+  let alllist = Brute.gen allowed size in
+  let () =
+    Printf.printf "Initialized candidate list (%d elements)\n" (List.length alllist) in
+  let start_time = Sys.time() in
   let (status, outputs, message) = Remote.eval_id id initialguess in
   if status <> Remoteeval.EvalStatusOk then
     begin
@@ -59,7 +64,11 @@ let main =
       try guess_submit ()
       with Again -> (Unix.sleep 20; guess_function x)
     in
-    GuessCaller.guess_call (List.combine initialguess outputs)
+    let _ = GuessCaller.guess_call (List.combine initialguess outputs)
       guess_function
-      (unops, binops, statements)
+      allowed
       size
+      alllist
+    in
+    let end_time = Sys.time() in
+    Printf.printf "Execution time: %fs\n" (end_time -. start_time)
