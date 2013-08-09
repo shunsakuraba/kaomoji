@@ -75,8 +75,8 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
     match depth with
 	0 -> []
       | 1 ->
-	(if input_shadowed then [Zero; One] else [Zero; One; Input])
-	@ Array.to_list (Array.init nid (fun x -> Ident x))
+	(if input_shadowed then [Zero, 0; One, 0] else [Zero, 0; One, 0; Input, 0])
+	 @ Array.to_list (Array.init nid (fun x -> Ident x, 0))
       | k ->
 	(* I will regret this spaghetti *)
 	(* NEWS: I did *)
@@ -90,19 +90,15 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	      List.iter (fun part ->
 		match part with
 		    [d1; d2; d3] ->
-                      for i = 0 to new_unused do
-		        List.iter
-                          (fun x ->
-                            for j = 0 to new_unused - i do
-			      List.iter
-                                (fun y ->
-			          List.iter 
-			            (fun z -> cands := If0 (x, y, z) :: !cands)
-			            (gen input_shadowed nid (new_unused - i - j) d3))
-			        (gen input_shadowed nid j d2)
-                            done)
-			  (gen input_shadowed nid i d1)
-                      done
+	              List.iter
+                        (fun (x, x_used) ->
+	                  List.iter
+                            (fun (y, y_used) ->
+		              List.iter 
+		                (fun (z, z_used) -> cands := (If0 (x, y, z), x_used lor y_used lor z_used lor (unused_stmts_bit SIf0)) :: !cands)
+		                (gen input_shadowed nid (new_unused land (lnot x_used) land (lnot y_used)) d3))
+		            (gen input_shadowed nid 0 d2))
+		        (gen input_shadowed nid 0 d1)
 		  | _ -> failwith "partition bugged")
 		partitions;
 	      !cands
@@ -119,19 +115,15 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	      List.iter (fun part ->
 		match part with
 		    [d1; d2; d3] ->
-                      for i = 0 to new_unused do
 		        List.iter
-                          (fun x ->
-                            for j = 0 to new_unused - i do
+                          (fun (x, x_used) ->
 			      List.iter
-                                (fun y ->
+                                (fun (y, y_used) ->
 			          List.iter
-                                    (fun z -> cands := Fold (x, y, nid, nid + 1, z) :: !cands)
-			            (gen input_shadowed (nid + 2) (new_unused - i - j) d3))
-			        (gen input_shadowed nid j d2)
-                            done)
-			  (gen input_shadowed nid i d1)
-                      done
+                                    (fun (z, z_used) -> cands := (Fold (x, y, nid, nid + 1, z), x_used lor y_used lor z_used lor (unused_stmts_bit SFold)) :: !cands)
+			            (gen input_shadowed (nid + 2) (new_unused land (lnot x_used) land (lnot y_used)) d3))
+			        (gen input_shadowed nid 0 d2))
+			  (gen input_shadowed nid 0 d1)
 		  | _ -> failwith "partition bugged")
 		partitions;
 	      !cands in
@@ -140,8 +132,8 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	let unopcands = 
 	  let cands = ref [] in
 	  List.iter (fun op ->
-	    List.iter (fun x ->
-	      cands := Op1 (op, x) :: !cands)
+	    List.iter (fun (x, x_used) ->
+	      cands := (Op1 (op, x), x_used lor (unused_un_bit op)) :: !cands)
 	      (gen input_shadowed nid (unused land (lnot (unused_un_bit op))) (depth - 1)))
 	    allowed_un;
 	  !cands in
@@ -154,14 +146,12 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 		  List.iter
                     (fun op ->
                       let new_unused = unused land (lnot (unused_bin_bit op)) in
-                      for i = 0 to new_unused do
 		        List.iter
-                          (fun x ->
+                          (fun (x, x_used) ->
 		            List.iter
-                              (fun y -> cands := Op2 (op, x, y) :: !cands)
-		              (gen input_shadowed nid (new_unused - i) d2))
-		          (gen input_shadowed nid i d1)
-                      done)
+                              (fun (y, y_used) -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands)
+		              (gen input_shadowed nid (new_unused land (lnot x_used)) d2))
+		          (gen input_shadowed nid 0 d1))
                     allowed_bin
 	      | _ -> failwith "partition bugged")
 	    partitions;
@@ -183,8 +173,8 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
        allowed_un) in
   if tfold_in_ops then
     let inner = gen true 2 unused (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
-    List.map (fun x ->
-      Fold (Input, Zero, 0, 1, x))
+    List.map
+      (fun (x, x_used) -> Fold (Input, Zero, 0, 1, x))
       inner
   else
-    gen false 0 unused (depth - 1) (* -1 is from the big "lambda" of outside *)
+    List.map (fun (x, x_used) -> x) (gen false 0 unused (depth - 1) (* -1 is from the big "lambda" of outside *))
