@@ -182,3 +182,6 @@ PROGRAM = brute
 OCAML_LIBS += ../common/common 
 
 .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) 
+
+clean:
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
