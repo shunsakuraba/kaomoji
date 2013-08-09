@@ -6,8 +6,24 @@ let rand64 () =
     (Int64.shift_left (Random.int64 bit32) 32)
     (Random.int64 bit32)
 
+let main =
+  if false then
+    let bitseq = 
+      Array.to_list
+	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    let syntax = 
+      let open Type in
+	  Fold (Input, Zero, 0, 1, Op2 (And, Ident 0, Op1 (Not, Ident 1))) in
+      let outputs = List.map (Eval.eval syntax) bitseq in
+      let merge = List.combine bitseq outputs in
+      List.iter
+	(fun (i,o) -> Printf.printf "%LX => %LX\n" i o)
+	merge
+  else
+    ()
+
 let main = 
-  let train_string = fetch_train 3 "fold" in
+  let train_string = fetch_train 12 "tfold" in
   let train = parse_train_string train_string in
   let () = print_endline (format_train train 0) in
   let id, size, (unops, binops, statements), challenge = train in

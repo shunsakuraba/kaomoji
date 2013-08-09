@@ -20,7 +20,7 @@ let eval expr input =
 	    let es = eval input env estart in
 	    let now = ref es in
 	    for i = 0 to 7 do
-	      let cur = logand (shift_right xin (i * 8)) 0x0fL in
+	      let cur = logand (shift_right_logical xin (i * 8)) 0xffL in
 	      let newnow = eval input ((byteid, cur)::(curid, !now)::env) e2 in
 	      now := newnow
 	    done;
