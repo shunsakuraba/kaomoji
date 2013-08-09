@@ -25,52 +25,63 @@ let op1list =
 let op2list = 
   [And; Or; Xor; Plus]
 
-let gen depth =
-  let rec gen nid depth = 
+let gen (allowed_un, allowed_bin, allowed_stmts) depth =
+  let if0_in_ops = List.mem SIf0 allowed_stmts in
+  let fold_in_ops = List.mem SFold allowed_stmts in
+  let tfold_in_ops = List.mem STfold allowed_stmts in
+  let rec gen input_shadowed nid depth = 
     match depth with
 	0 -> []
       | 1 ->
-	[Zero; One; Input] 
+	(if input_shadowed then [Zero; One] else [Zero; One; Input])
 	@ Array.to_list (Array.init nid (fun x -> Ident x))
       | k ->
 	(* I will regret this spaghetti *)
 	(* NEWS: I did *)
 	let if0cands = 
-	  let partitions = partition 3 (k - 1) in
-	  List.map (fun part ->
-	    match part with
-		[d1; d2; d3] ->
-		  List.map (fun x -> 
-		    List.map (fun y ->
-		      List.map 
-			(fun z -> If0 (x, y, z))
-			(gen nid d3))
-		      (gen nid d2))
-		    (gen nid d1)
-	      | _ -> failwith "partition bugged")
-	    partitions in
-	let if0cands = List.flatten @@ List.flatten @@ List.flatten if0cands in
+	  if if0_in_ops 
+	  then
+	    let if0cands = 
+	      let partitions = partition 3 (k - 1) in
+	      List.map (fun part ->
+		match part with
+		    [d1; d2; d3] ->
+		      List.map (fun x -> 
+			List.map (fun y ->
+			  List.map 
+			    (fun z -> If0 (x, y, z))
+			    (gen input_shadowed nid d3))
+			  (gen input_shadowed nid d2))
+			(gen input_shadowed nid d1)
+		  | _ -> failwith "partition bugged")
+		partitions in
+	    List.flatten @@ List.flatten @@ List.flatten if0cands
+	  else [] in
 	let foldcands =
-	  let partitions = partition 3 (k - 2) in
-	  List.map (fun part ->
-	    match part with
-		[d1; d2; d3] ->
-		  List.map (fun x ->
-		    List.map (fun y ->
-		      List.map (fun z ->
-			Fold (x, y, nid, nid + 1, z))
-			(gen (nid + 2) d3))
-		      (gen nid d2))
-		    (gen nid d1)
-	      | _ -> failwith "partition bugged")
-	    partitions in
-	let foldcands = List.flatten @@ List.flatten @@ List.flatten foldcands in
+	  if fold_in_ops
+	  then
+	    let foldcands = 
+	      let partitions = partition 3 (k - 2) in
+	      List.map (fun part ->
+		match part with
+		    [d1; d2; d3] ->
+		      List.map (fun x ->
+			List.map (fun y ->
+			  List.map (fun z ->
+			    Fold (x, y, nid, nid + 1, z))
+			    (gen input_shadowed (nid + 2) d3))
+			  (gen input_shadowed nid d2))
+			(gen input_shadowed nid d1)
+		  | _ -> failwith "partition bugged")
+		partitions in
+	    List.flatten @@ List.flatten @@ List.flatten foldcands
+	  else [] in
 	let unopcands = 
 	  List.map (fun x -> 
 	    List.map (fun op ->
 	      Op1 (op, x))
-	      op1list)
-	    (gen nid (depth - 1)) in
+	      allowed_un)
+	    (gen input_shadowed nid (depth - 1)) in
 	let unopcands = List.flatten unopcands in
 	let binopcands = 
 	  let partitions = partition 2 (k - 1) in
@@ -81,15 +92,21 @@ let gen depth =
 		    List.map (fun y ->
 		      List.map (fun op ->
 			Op2 (op, x, y))
-			op2list)
-		      (gen nid d2))
-		    (gen nid d1)
+			allowed_bin)
+		      (gen input_shadowed nid d2))
+		    (gen input_shadowed nid d1)
 	      | _ -> failwith "partition bugged")
 	    partitions in
 	let binopcands = List.flatten @@ List.flatten @@ List.flatten binopcands in
 	if0cands @ foldcands @ unopcands @ binopcands
   in
-  gen 0 (depth - 1) (* -1 is from the big "lambda" of outside *)
+  if tfold_in_ops then
+    let inner = gen true 2 (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
+    List.map (fun x ->
+      Fold (Input, Zero, 0, 1, x))
+      inner
+  else	
+    gen false 0 (depth - 1) (* -1 is from the big "lambda" of outside *)
 
 
      

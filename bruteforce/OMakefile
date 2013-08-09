@@ -19,7 +19,7 @@
 # You will usually need to modify this file for your project.
 
 # Delete this line once you have configured this file
-#eprintln($(CWD)/OMakefile is not configured)
+eprintln($(CWD)/OMakefile is not configured)
 
 ########################################################################
 # Phony targets are scoped, so you probably want to declare them first.
@@ -100,10 +100,16 @@
 #    eprintln(You need to install ocamlfind and run "omake --configure".)
 #    exit 1
 
+#USE_OCAMLFIND = true
+
+#OCAMLPACKS[] =
+
 #
 # Include path
 #
 # OCAMLINCLUDES +=
+
+OCAMLINCLUDES += ../common
 
 #
 # Compile native or byte code? 
@@ -147,6 +153,15 @@
 # Build an OCaml program
 #
 
+FILES[] =
+   main
+   eval
+   brute
+   guess
+   print
+
+PROGRAM = brute
+
 # FILES[] =
 #    file1
 #    file2
@@ -159,7 +174,6 @@
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-.SUBDIRS: common parser bruteforce
+OCAML_LIBS += ../common/common
 
-clean:	
-	rm -f *~ *.omc
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) 

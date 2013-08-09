@@ -3,8 +3,8 @@ open Feedback
 let filter_by_guess input output expr =
   Eval.eval expr input = output
   
-let guess initial feedback depth = 
-  let alllist = Brute.gen depth in
+let guess initial feedback allowed depth = 
+  let alllist = Brute.gen allowed depth in
   let initiallist = 
     List.fold_left
       (fun cur (i, o) ->
