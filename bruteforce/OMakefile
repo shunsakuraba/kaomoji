@@ -19,7 +19,7 @@
 # You will usually need to modify this file for your project.
 
 # Delete this line once you have configured this file
-#eprintln($(CWD)/OMakefile is not configured)
+eprintln($(CWD)/OMakefile is not configured)
 
 ########################################################################
 # Phony targets are scoped, so you probably want to declare them first.
@@ -100,12 +100,9 @@
 #    eprintln(You need to install ocamlfind and run "omake --configure".)
 #    exit 1
 
-USE_OCAMLFIND = true
+#USE_OCAMLFIND = true
 
-OCAMLPACKS[] =
-  netclient
-  http
-  yojson
+#OCAMLPACKS[] =
 
 #
 # Include path
@@ -156,6 +153,15 @@ OCAMLINCLUDES += ../common
 # Build an OCaml program
 #
 
+FILES[] =
+   main
+   eval
+   brute
+   guess
+   print
+
+PROGRAM = brute
+
 # FILES[] =
 #    file1
 #    file2
@@ -170,7 +176,4 @@ OCAMLINCLUDES += ../common
 
 OCAML_LIBS += ../common/common
 
-.DEFAULT: $(OCamlProgram dump_json, dump_json) $(OCamlProgram fetch_problems, fetch_problems) $(OCamlProgram train_fetch_example, train_fetch_example) $(OCamlProgram train_solve_example, train_solve_example)
-
-clean:	
-	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa dump_json fetch_problems train_fetch_example train_solve_example
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) 

@@ -19,6 +19,6 @@ let _ = print_endline
   (Printf.sprintf "Solved: %4d/%4d" num_solved
      (List.length problems)) in
 List.iteri
-  (fun i x -> print_problem x i)
+  (fun i x -> print_endline (format_problem x i))
   sorted_problems
 ;;

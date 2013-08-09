@@ -159,9 +159,7 @@
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-.SUBDIRS: common parser
-
-.PHONY: all clean
+.SUBDIRS: common parser bruteforce
 
 clean:	
 	rm -f *~ *.omc

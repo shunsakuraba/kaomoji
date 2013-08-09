@@ -103,6 +103,8 @@
 USE_OCAMLFIND = true
 
 OCAMLPACKS[] =
+  netclient
+  http
   yojson
 
 #
