@@ -1,8 +1,6 @@
-open Api
-open Train
 open Remoteeval
-open Util
 open Remoteguess
+open Util
 
 let main =
   if false then
