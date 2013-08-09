@@ -161,5 +161,7 @@
 
 .SUBDIRS: common parser bruteforce
 
+.PHONY: clean
+
 clean:	
 	rm -f *~ *.omc
