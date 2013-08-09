@@ -32,7 +32,7 @@ let print expr =
 	  (print e1)
 	  (print e2)
   and print_id id =
-    sprintf "x_%d" id
+    String.make 1 (Char.chr ((Char.code 'a') + id))
   and print_uop uop = match uop with
       Not -> "not"
     | Shl1 -> "shl1"
@@ -45,4 +45,4 @@ let print expr =
     | Xor -> "xor"
     | Plus -> "plus"
   in
-  print expr
+  sprintf "(lambda (input) %s)" (print expr)
