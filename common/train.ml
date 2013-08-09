@@ -1,18 +1,28 @@
 open Api;;
 open Type;;
 
+exception Fetch_error
+
 let fetch_train size operators =
-  let problem_url = api_site ^ "/train?auth=" ^ auth in
+  let url = api_site ^ "/train?auth=" ^ auth in
   let call =
     new Http_client.post_raw
-      problem_url
+      url
       (Yojson.Safe.to_string
-         (`Assoc([("size", `Int(size));
-                  ("operators", `String(operators))]))) in
+         (`Assoc(
+           [("size", `Int(size));
+            ("operators", `String(operators))]))) in
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  call # response_body # value
+  let status = call # response_status_code in
+  if status <> 200 then
+    begin
+      print_endline ("fetch_train failed status: " ^ (string_of_int status));
+      raise Fetch_error
+    end
+  else
+    call # response_body # value
 ;;
 
 let parse_train_string s =
