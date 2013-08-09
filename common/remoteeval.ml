@@ -78,7 +78,6 @@ let eval_id id arguments =
   print_endline status;
   print_endline result;
   parse_eval_result_string result
-;;
 
 let eval_program program_string arguments =
   let url = Api.api_site ^ "/eval?auth=" ^ Api.auth in

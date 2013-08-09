@@ -25,9 +25,9 @@ let main =
 exception Again
 
 let main = 
-  let train = Remote.fetch_train 12 "" in
-  let () = print_endline (Train.format_train train 0) in
-  let id, size, (unops, binops, statements), challenge = train in
+  let core_problem = Remote.fetch_one_core_problem 8 "tfold" "train" in
+  let () = print_endline (Remote.format_core_problem core_problem) in
+  let id, size, (unops, binops, statements) = core_problem in
   let initialguess = 
     let bitseq = 
       Array.to_list
