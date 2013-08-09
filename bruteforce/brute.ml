@@ -25,7 +25,7 @@ let op1list =
 let op2list = 
   [And; Or; Xor; Plus]
 
-let gen_rec (allowed_un, allowed_bin, allowed_stmts) (used_un, used_bin, used_stmts) depth =
+let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   let if0_in_ops = List.mem SIf0 allowed_stmts in
   let fold_in_ops = List.mem SFold allowed_stmts in
   let tfold_in_ops = List.mem STfold allowed_stmts in
@@ -117,6 +117,3 @@ let gen_rec (allowed_un, allowed_bin, allowed_stmts) (used_un, used_bin, used_st
       inner
   else	
     gen false 0 (depth - 1) (* -1 is from the big "lambda" of outside *)
-
-let gen allowed_ops depth =
-  gen_rec allow_ops (0, 0, 0) depth
