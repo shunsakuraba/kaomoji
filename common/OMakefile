@@ -158,6 +158,7 @@ FILES[] =
    problem
    train
    remoteeval
+   remoteguess
 
 LIB = common
 
