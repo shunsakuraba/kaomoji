@@ -1,4 +1,5 @@
 open Api
+open Train
 
 let rand64 () = 
   let bit32 = Int64.shift_left 1L 32 in

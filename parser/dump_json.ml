@@ -1,4 +1,4 @@
-open Api;;
+open Problem;;
 
 (* tuple format *)
 (* id, size, operators, solved, timeleft *)
