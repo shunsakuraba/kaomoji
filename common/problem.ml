@@ -110,3 +110,28 @@ let fetch_problems () =
   let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
   Http_user_agent.get problem_url
 
+let is_match_ops_limit statements ops_limit =
+  if ops_limit = "" then
+    true
+  else if ops_limit = "fold" then
+    List.mem SFold statements
+  else if ops_limit = "tfold" then
+    List.mem STfold statements
+  else
+    failwith "Unsupported ops_limit"
+
+let fetch_good_problems size_limit ops_limit =
+  let problems_body = fetch_problems () in
+  let problems_json = Yojson.Safe.from_string problems_body in
+  let problems = parse_problems_json problems_json in
+  let good_problems = List.find_all
+    (fun x -> let (id, size, (unops, binops, statements), solved, time_left) = x in
+	      if solved then
+		false
+	      else if size <> size_limit then
+		false
+	      else 
+		is_match_ops_limit statements ops_limit)
+    problems in
+  good_problems
+
