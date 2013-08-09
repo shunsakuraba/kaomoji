@@ -1,29 +1,5 @@
-open Api;;
-open Type;;
-
-exception Fetch_error
-
-let fetch_train size operators =
-  let url = api_site ^ "/train?auth=" ^ auth in
-  let call =
-    new Http_client.post_raw
-      url
-      (Yojson.Safe.to_string
-         (`Assoc(
-           [("size", `Int(size));
-            ("operators", `String(operators))]))) in
-  let pipeline = new Http_client.pipeline in
-  pipeline # add call;
-  pipeline # run();
-  let status = call # response_status_code in
-  if status <> 200 then
-    begin
-      print_endline ("fetch_train failed status: " ^ (string_of_int status));
-      raise Fetch_error
-    end
-  else
-    call # response_body # value
-;;
+open Api
+open Type
 
 let parse_train_string s =
   let scan_train_kv_list kv_list =
@@ -65,14 +41,33 @@ let parse_train_string s =
       scan_train_kv_list kv_list
     | _ ->
       raise Parse_error
-;;
 
-let format_train (id, size, operator, challenge) index =
+let format_train (id, size, operators, challenge) index =
   Printf.sprintf
-    "%4d %s: %d %s %s"
+    "%4d %s: %2d %s %s"
     index
     id
     size
-    (format_operator_tuple operator)
+    (format_operator_tuple operators)
     challenge
-;;
+
+let fetch_train size operators =
+  let url = api_site ^ "/train?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      url
+      (Yojson.Safe.to_string
+         (`Assoc(
+           [("size", `Int(size));
+            ("operators", `String(operators))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  let status = call # response_status_code in
+  if status <> 200 then
+    begin
+      print_endline ("fetch_train failed status: " ^ (string_of_int status));
+      raise Fetch_error
+    end
+  else
+    call # response_body # value
