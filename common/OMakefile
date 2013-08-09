@@ -123,7 +123,7 @@ OCAMLPACKS[] =
 #
 # Various options
 #
-# OCAMLFLAGS    +=
+OCAMLFLAGS    += -annot
 # OCAMLCFLAGS   +=
 # OCAMLOPTFLAGS +=
 # OCAML_LINK_FLAGS +=

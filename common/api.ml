@@ -202,7 +202,7 @@ let scan_eval_result_kv_list kv_list =
           `List(l) ->
             outputs := List.map
               (fun x -> match x with
-                | `String(s) -> s
+                | `String(s) -> Int64.of_string s
                 | _ -> raise Not_found)
               l
         | _ ->
