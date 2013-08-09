@@ -182,7 +182,7 @@ PROGRAM = brute
 
 OCAML_LIBS += ../common/common 
 
-.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) 
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) $(OCamlLibrary libbrute, brute guessCaller)
 
 clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
