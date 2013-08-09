@@ -89,7 +89,7 @@ let gen depth =
 	let binopcands = List.flatten @@ List.flatten @@ List.flatten binopcands in
 	if0cands @ foldcands @ unopcands @ binopcands
   in
-  gen 0 depth
+  gen 0 (depth - 1) (* -1 is from the big "lambda" of outside *)
 
 
      
