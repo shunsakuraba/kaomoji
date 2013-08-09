@@ -174,5 +174,5 @@ OCAML_LIBS += ../common/common
 
 .PHONY: clean
 
-clean:	
+clean:	common/clean
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa dump_json fetch_problems train_fetch_example train_solve_example train_guess_example
