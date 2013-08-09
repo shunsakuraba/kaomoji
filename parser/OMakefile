@@ -165,4 +165,4 @@ OCAMLPACKS[] =
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
 
-.DEFAULT: $(OCamlProgram fetch, fetch)
+.DEFAULT: $(OCamlProgram parse, parse)
