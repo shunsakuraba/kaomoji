@@ -57,14 +57,12 @@ let parse_train_string s =
       raise Parse_error
 ;;
 
-let format_train (id, size, (unops, binops, statements), challenge) index =
+let format_train (id, size, operator, challenge) index =
   Printf.sprintf
-    "%4d %s: %d [%s] [%s] [%s] %s"
+    "%4d %s: %d %s %s"
     index
     id
     size
-    (String.concat "," (List.map unop_to_string unops))
-    (String.concat "," (List.map binop_to_string binops))
-    (String.concat "," (List.map statement_to_string statements))
+    (format_operator_tuple operator)
     challenge
 ;;
