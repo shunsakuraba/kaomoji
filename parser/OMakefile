@@ -170,7 +170,7 @@ OCAMLINCLUDES += ../common
 
 OCAML_LIBS += ../common/common
 
-.DEFAULT: $(OCamlProgram dump_json, dump_json) $(OCamlProgram fetch, fetch) $(OCamlProgram train, train)
+.DEFAULT: $(OCamlProgram dump_json, dump_json) $(OCamlProgram fetch_problems, fetch_problems) $(OCamlProgram train_fetch_example, train_fetch_example)
 
 clean:	
-	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa dump_json fetch train
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa dump_json fetch_problems train_fetch_example
