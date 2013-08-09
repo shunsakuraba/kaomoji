@@ -171,3 +171,6 @@ LIB = common
 # OCAML_LIB_FLAGS +=
 #
 # .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
+
+clean:
+	rm -f *~ *.opt *.cmi *.cmx *.o *.omc
