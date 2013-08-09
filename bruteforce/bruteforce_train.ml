@@ -1,7 +1,3 @@
-open Api
-open Train
-open Remoteeval
-
 let rand64 () = 
   let bit32 = Int64.shift_left 1L 32 in
   Int64.logxor 
@@ -27,9 +23,8 @@ let main =
 exception Again
 
 let main = 
-  let train_string = fetch_train 12 "" in
-  let train = parse_train_string train_string in
-  let () = print_endline (format_train train 0) in
+  let train = Remote.fetch_train 12 "" in
+  let () = print_endline (Train.format_train train 0) in
   let id, size, (unops, binops, statements), challenge = train in
   let initialguess = 
     let bitseq = 
@@ -40,16 +35,16 @@ let main =
 	(Array.init 192
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
-  let (status, outputs, message) = eval_id id initialguess in
-  if status <> EvalStatusOk then
+  let (status, outputs, message) = Remote.eval_id id initialguess in
+  if status <> Remoteeval.EvalStatusOk then
     begin
-      Printf.printf "Status: \"%s\"\n" (print_eval_status status);
+      Printf.printf "Status: \"%s\"\n" (Remoteeval.print_eval_status status);
       failwith "Eval returned error"
     end
   else
     let rec guess_function x =
       let guess_submit () = 
-	let (status, values, message, _lightning) = guess id (Print.print x) in
+	let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
 	print_endline message;
 	match status with
 	    "win" -> Feedback.Success
