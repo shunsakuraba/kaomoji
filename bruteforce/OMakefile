@@ -159,11 +159,12 @@ OCAMLPACKS[] =
   netclient
   http
   yojson
+  unix
 
 FILES[] =
    bruteforce_train
    brute
-   guess
+   guessCaller
 
 PROGRAM = brute
 
