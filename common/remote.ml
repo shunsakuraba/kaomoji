@@ -5,3 +5,11 @@ let fetch_train max_depth operator =
 let guess id challenge =
   Remoteguess.guess id challenge
 
+let eval_id id arguments =
+  Remoteeval.eval_id id arguments
+
+let eval_program program_string arguments =
+  Remoteeval.eval_program program_string arguments
+
+let guess id challenge =
+  Remoteguess.guess id challenge
