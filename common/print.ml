@@ -32,7 +32,7 @@ let print expr =
 	  (print e1)
 	  (print e2)
   and print_id id =
-    printf "x_%d" id
+    sprintf "x_%d" id
   and print_uop uop = match uop with
       Not -> "not"
     | Shl1 -> "shl1"
