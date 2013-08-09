@@ -1,12 +1,30 @@
+type eval_status = EvalStatusOk | EvalStatusError | EvalStatusInvalid
+
+let parse_eval_status_string s =
+  if s = "ok" then
+    EvalStatusOk
+  else if s = "error" then
+    EvalStatusError
+  else
+    EvalStatusInvalid
+
+let print_eval_status s =
+  if s = EvalStatusOk then
+    "ok"
+  else if s = EvalStatusError then
+    "error"
+  else
+    "invalid"
+
 let scan_eval_result_kv_list kv_list =
-  let status = ref "" in
+  let status = ref EvalStatusInvalid in
   let outputs = ref [] in
   let message = ref "" in
 
   let parse_kv (key, value) =
     if key = "status" then
       match value with
-          `String(s) -> status := s
+          `String(s) -> status := parse_eval_status_string s
         | _ ->
           print_endline "no";
           raise Api.Parse_error
