@@ -155,6 +155,8 @@ FILES[] =
    eval
    print
    api
+   problem
+   train
 
 LIB = common
 
