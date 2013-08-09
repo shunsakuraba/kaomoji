@@ -159,6 +159,8 @@ FILES[] =
    train
    remoteeval
    util
+   remoteguess
+   remote
 
 LIB = common
 

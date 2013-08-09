@@ -5,6 +5,7 @@ let filter_by_guess input output expr =
   
 let guess_call initial feedback allowed depth = 
   let alllist = Brute.gen allowed depth in
+  let () = Printf.printf "Initialized candidate list (%d elements)\n" (List.length alllist) in
   (* let () = List.iter (fun x -> print_endline (Print.print x)) alllist in *)
   let initiallist = 
     List.fold_left
@@ -12,6 +13,7 @@ let guess_call initial feedback allowed depth =
 	List.filter (filter_by_guess i o) cur)
       alllist initial
   in
+  let () = Printf.printf "After filtering %d elements remains\n" (List.length initiallist) in
   let curlist = ref initiallist in
   try
     while true do
