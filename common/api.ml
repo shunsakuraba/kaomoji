@@ -3,6 +3,8 @@ open Type
 let api_site = "http://icfpc2013.cloudapp.net"
 let auth = "AUTHKEYvpsH1H"
 
+exception Parse_error
+
 let parse_operator_string_list l =
   let unops = ref [] in
   let binops = ref [] in
@@ -22,101 +24,81 @@ let parse_operator_string_list l =
         else if s = "if0" then statements := SIf0 :: !statements
         else if s = "fold" then statements := SFold :: !statements
         else if s = "tfold" then statements := STfold :: !statements
-        else raise Not_found
-      | _ -> raise Not_found
+        else raise Parse_error
+      | _ -> raise Parse_error
     )
     l;
   !unops, !binops, !statements
 ;;
 
-let scan_kv_list kv_list =
-  let id = ref "" in
-  let size = ref 0 in
-  let operators = ref ([], [], []) in
-  let solved = ref false in
-  let time_left = ref "" in
+let parse_problem_json j =
+  let scan_kv_list kv_list =
+    let id = ref "" in
+    let size = ref 0 in
+    let operators = ref ([], [], []) in
+    let solved = ref false in
+    let time_left = ref "" in
 
-  let parse_kv (key, value) =
-    if key = "id" then
-      match value with
-          `String(s) -> id := s
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "size" then
-      match value with
-          `Int(i) -> size := i
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "operators" then
-      match value with
-          `List(l) -> operators := parse_operator_string_list l
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "solved" then
-      match value with
-          `Bool(b) -> solved := b
-        | _ ->
-          print_endline "no";
-          raise Not_found
-    else if key = "timeLeft" then
-      match value with
-          `Intlit(s) -> ()
-        | _ ->
-          print_endline "c";
-          raise Not_found
-    else
-      raise Not_found in
+    let parse_kv (key, value) =
+      if key = "id" then
+        match value with
+            `String(s) -> id := s
+          | _ ->
+            raise Parse_error
+      else if key = "size" then
+        match value with
+            `Int(i) -> size := i
+          | _ ->
+            raise Parse_error
+      else if key = "operators" then
+        match value with
+            `List(l) -> operators := parse_operator_string_list l
+          | _ ->
+            raise Parse_error
+      else if key = "solved" then
+        match value with
+            `Bool(b) -> solved := b
+          | _ ->
+            raise Parse_error
+      else if key = "timeLeft" then
+        match value with
+            `Intlit(s) -> ()
+          | _ ->
+            raise Parse_error
+      else
+        raise Parse_error in
 
-  List.iter parse_kv kv_list;
-  (!id, !size, !operators, !solved, !time_left)
+    List.iter parse_kv kv_list;
+    (!id, !size, !operators, !solved, !time_left) in
+
+  match j with
+    | `Assoc(kv_list) ->
+      scan_kv_list kv_list
+    | _ ->
+      raise Parse_error
 ;;
 
-let parse_problem_json = function
-  | `Assoc(kv_list) ->
-    scan_kv_list kv_list
-  | _ ->
-    print_endline "b";
-    raise Not_found
-;;
-
-let format_problem (id, size, (unops, binops, statements), solved, time_left) index =
+let format_operator_tuple (unops, binops, statements) =
   Printf.sprintf
-    "%4d %s: %d [%s] [%s] [%s] %s %s"
-    index
-    id
-    size
+    "[%s] [%s] [%s]"
     (String.concat "," (List.map unop_to_string unops))
     (String.concat "," (List.map binop_to_string binops))
     (String.concat "," (List.map statement_to_string statements))
+
+let format_problem (id, size, operators, solved, time_left) index =
+  Printf.sprintf
+    "%4d %s: %2d %s %s %s"
+    index
+    id
+    size
+    (format_operator_tuple operators)
     (if solved then "T" else "F")
     time_left
 ;;
 
 let parse_problems_json = function
   | `List(l) -> List.map parse_problem_json l
-  | _ -> raise Not_found
-;;
-
-let fetch_train size operators =
-  let problem_url = api_site ^ "/train?auth=" ^ auth in
-  let call =
-    new Http_client.post_raw
-      problem_url
-      (Yojson.Safe.to_string
-         (`Assoc([("size", `Int(size));
-                  ("operators", `String(operators))]))) in
-  let pipeline = new Http_client.pipeline in
-  pipeline # add call;
-  pipeline # run();
-  call # response_body # value
-;;
-
-let fetch_problems () =
-  let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
-  Http_user_agent.get problem_url
+  | _ -> raise Parse_error
 ;;
 
 let scan_train_kv_list kv_list =
@@ -131,27 +113,27 @@ let scan_train_kv_list kv_list =
           `String(s) -> id := s
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "size" then
       match value with
           `Int(i) -> size := i
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "operators" then
       match value with
           `List(l) -> operators := parse_operator_string_list l
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "challenge" then
       match value with
           `String(s) -> challenge := s
         | _ ->
           print_endline "c";
-          raise Not_found
+          raise Parse_error
     else
-      raise Not_found in
+      raise Parse_error in
 
   List.iter parse_kv kv_list;
   (!id, !size, !operators, !challenge)
@@ -164,18 +146,16 @@ let parse_train_string s =
       scan_train_kv_list kv_list
     | _ ->
       print_endline "b";
-      raise Not_found
+      raise Parse_error
 ;;
 
-let format_train (id, size, (unops, binops, statements), challenge) index =
+let format_train (id, size, operators, challenge) index =
   Printf.sprintf
-    "%4d %s: %d [%s] [%s] [%s] %s"
+    "%4d %s: %2d %s %s"
     index
     id
     size
-    (String.concat "," (List.map unop_to_string unops))
-    (String.concat "," (List.map binop_to_string binops))
-    (String.concat "," (List.map statement_to_string statements))
+    (format_operator_tuple operators)
     challenge
 ;;
 
@@ -190,26 +170,26 @@ let scan_eval_result_kv_list kv_list =
           `String(s) -> status := s
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "message" then
       match value with
           `String(s) -> message := s
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "outputs" then
       match value with
           `List(l) ->
             outputs := List.map
               (fun x -> match x with
                 | `String(s) -> Int64.of_string s
-                | _ -> raise Not_found)
+                | _ -> raise Parse_error)
               l
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else
-      raise Not_found in
+      raise Parse_error in
 
   List.iter parse_kv kv_list;
   (!status, !outputs, !message)
@@ -222,7 +202,26 @@ let parse_eval_result_string s =
       scan_eval_result_kv_list kv_list
     | _ ->
       print_endline "b";
-      raise Not_found
+      raise Parse_error
+;;
+
+let fetch_problems () =
+  let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
+  Http_user_agent.get problem_url
+;;
+
+let fetch_train size operators =
+  let problem_url = api_site ^ "/train?auth=" ^ auth in
+  let call =
+    new Http_client.post_raw
+      problem_url
+      (Yojson.Safe.to_string
+         (`Assoc([("size", `Int(size));
+                  ("operators", `String(operators))]))) in
+  let pipeline = new Http_client.pipeline in
+  pipeline # add call;
+  pipeline # run();
+  call # response_body # value
 ;;
 
 let eval_id id arguments =
@@ -275,32 +274,32 @@ let scan_guess_result_kv_list kv_list =
           `String(s) -> status := s
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "values" then
       match value with
           `List(l) ->
             values := List.map
               (fun x -> match x with
                 | `String(s) -> Int64.of_string s
-                | _ -> raise Not_found)
+                | _ -> raise Parse_error)
               l
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "message" then
       match value with
           `String(s) -> message := s
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else if key = "lightning" then
       match value with
           `Bool(b) -> lightning := b
         | _ ->
           print_endline "no";
-          raise Not_found
+          raise Parse_error
     else
-      raise Not_found in
+      raise Parse_error in
 
   List.iter parse_kv kv_list;
   (!status, !values, !message, !lightning)
@@ -313,7 +312,7 @@ let parse_guess_result_string s =
       scan_guess_result_kv_list kv_list
     | _ ->
       print_endline "b";
-      raise Not_found
+      raise Parse_error
 ;;
 
 let guess id program_string =
