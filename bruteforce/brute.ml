@@ -230,7 +230,6 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
             ())
     (Array.get groups (depth - 1));
   !merged
-;;
 
 let rec simp expr =
   match expr with
