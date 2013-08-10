@@ -157,7 +157,6 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	  List.iter (fun part ->
 	    match part with
 		[d1; d2] ->
-                  if d1 > d2 then () else
 		  List.iter
                     (fun (x, x_used) ->
 		      List.iter
