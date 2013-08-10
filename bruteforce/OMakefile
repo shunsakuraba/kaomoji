@@ -189,7 +189,7 @@ TEST_BRUTE_FILES[] =
 
 OCAML_LIBS += ../common/common 
 
-.DEFAULT: $(OCamlProgram brute, $(BRUTE_FILES)) $(OCamlLibrary libbrute, brute guessCaller) $(OCamlProgram test_brute, $(TEST_BRUTE_FILES)) 
+.DEFAULT: $(OCamlProgram brute, $(BRUTE_FILES)) $(OCamlLibrary libbrute, brute guessCaller simplifier) $(OCamlProgram test_brute, $(TEST_BRUTE_FILES)) 
 
 clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
