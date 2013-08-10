@@ -1,7 +1,7 @@
 open Type
 
-(* let api_site = "http://icfpc2013.cloudapp.net" *)
-let api_site = "AMAZONAWS"
+let api_site = "http://icfpc2013.cloudapp.net"
+(* let api_site = "AMAZONAWS" *)
 let auth = "AUTHKEYvpsH1H"
 
 exception Parse_error
