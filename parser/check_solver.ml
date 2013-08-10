@@ -5,7 +5,7 @@ open Eval;;
 open Print;;
 open Type;;
 
-let check_brute id allowed_ops_tuple size challenge =
+let check_brute id allowed_ops_tuple size challenge count =
   let answers = Brute.gen allowed_ops_tuple size in
   let answer = List.nth answers (Random.int (List.length answers)) in
   let initialguess =
@@ -13,17 +13,29 @@ let check_brute id allowed_ops_tuple size challenge =
       Array.to_list
         (Array.init 64 (fun x -> Int64.shift_left 1L x)) in
     let fixedseq =
-      [0xFFFFFFFFFFFFFFFFL;
-       0x0000000000000000L;
-       0xAAAAAAAAAAAAAAAAL;
-       0x5555555555555555L;
-       0xFFFFFFFF00000000L;
-       0x00000000FFFFFFFFL;
-       0x0000FFFFFFFF0000L;
-       0xFFFF00000000FFFFL;
-       0xFF00FF00FF00FF00L
+      [0x0000000000000000L;
+       (* 0xFFFFFFFFFFFFFFFFL; *)
+       (* 0x00000000FFFFFFFFL; *)
+       (* 0xFFFFFFFF00000000L; *)
+       (* 0x0000FFFF0000FFFFL; *)
+       (* 0xFFFF0000FFFF0000L; *)
+       (* 0x00FF00FF00FF00FFL; *)
+       (* 0xFF00FF00FF00FF00L; *)
+       (* 0x0F0F0F0F0F0F0F0FL; *)
+       (* 0xF0F0F0F0F0F0F0F0L; *)
+       (* 0x3333333333333333L; *)
+       (* 0xCCCCCCCCCCCCCCCCL; *)
+       (* 0x5555555555555555L; *)
+       (* 0xAAAAAAAAAAAAAAAAL; *)
+       (* 0x0000FFFFFFFF0000L; *)
+       (* 0xFFFF00000000FFFFL; *)
+       (* 0xFF0000FFFF0000FFL; *)
+       (* 0x00FFFF0000FFFF00L; *)
+       (* 0xF00FF00FF00FF00FL; *)
+       (* 0x0FF00FF00FF00FF0L; *)
+       0xDEADBEEFDEADBEEFL
       ] in
-    (* Random.init 0; *)
+    Random.init 0;
     let randseq = 
       Array.to_list
         (Array.init (256 - (List.length bitseq) - (List.length fixedseq))
@@ -42,7 +54,7 @@ let check_brute id allowed_ops_tuple size challenge =
     (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
     (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs));
 
-  let guess_function x =
+  let guess_function x c =
     (* Printf.printf *)
     (*   "%s\n  %s\n  %s\n  original: %s\n  guess:    %s\n  answer:   %s\n" *)
     (*   id *)
@@ -51,6 +63,7 @@ let check_brute id allowed_ops_tuple size challenge =
     (*   challenge *)
     (*   (Print.print x) *)
     (*   (Print.print answer); *)
+    count := !count + c;
     Feedback.Success
   in
   let alllist = Brute.gen allowed_ops_tuple size in
@@ -66,7 +79,9 @@ let rec check_by_train_list () =
   let train = parse_train_string train_string in
   let id, size, allowed_ops_tuple, challenge = train in
 
-  check_brute id allowed_ops_tuple size challenge;
+  let count = ref 0 in
+
+  check_brute id allowed_ops_tuple size challenge count;
   check_by_train_list ()
 ;;
 
@@ -85,11 +100,18 @@ let check_by_problems () =
       problems
   in
 
+  let count = ref 0 in
+
   List.iter
     (fun (id, size, allowed_ops_tuple, solved, time_over) ->
-      if size = 10 then failwith "stop" else
-      check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)))
-    sorted_problems
+      if size = 10 then
+        begin
+          Printf.eprintf "Count: %d" !count;
+          failwith "stop"
+        end
+      else
+      check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)) count)
+    sorted_problems;
 ;;
 
 check_by_problems ()
