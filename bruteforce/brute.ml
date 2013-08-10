@@ -236,7 +236,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target;
+    Array.set groups i (List.filter (fun (x, y) -> Simplifier.simp x = x) !target);
     Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
     flush_all ()
   done;
