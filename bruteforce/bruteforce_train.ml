@@ -23,7 +23,7 @@ exception Again
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 15 "" "train" in
+  let core_problem = Remote.fetch_one_core_problem 15 "fold" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -37,7 +37,7 @@ let main =
     bitseq @ randseq in
   let allowed = (unops, binops, statements) in
   let cand_gen_start_time = Sys.time() in
-  let alllist_initial = Brute.gen2 allowed (size + 1) in
+  let alllist_initial = Brute.gen2 allowed size in
   let () = Printf.printf "Initialized candidate list (%d elements)\n"
   (List.length alllist_initial) in
   let alllist = alllist_initial in

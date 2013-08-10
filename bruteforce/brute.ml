@@ -136,9 +136,14 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                             (not ((cond = Ident(1) && (ifcase_flag land 2) = 2))) then
                           List.iter
                             (fun (elsecase, elsecase_flag) ->
-                              let new_node = If0 (cond, ifcase, elsecase) in
-                              let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                              target := (new_node, new_flag) :: !target)
+                              if (not ((ifcase_flag land fold_used_bit = fold_used_bit) &&
+                                          (elsecase_flag <> 0))) &&
+                                (not ((elsecase_flag land fold_used_bit = fold_used_bit) &&
+                                         (ifcase_flag <> 0)))
+                              then
+                                let new_node = If0 (cond, ifcase, elsecase) in
+                                let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
+                                target := (new_node, new_flag) :: !target)
                             elsecases)
                         ifcases)
                   conds
@@ -208,16 +213,21 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                     List.iter
                       (fun (right, right_flag) ->
                         if left <= right then
-                          List.iter
-                            (fun op ->
-                              if (not (left = Zero || right = Zero)) &&
-                                (not ((op <> Plus) && left = right)) &&
-                                (not (op <> Plus &&
-                                    ((left = Zero || left = One) &&
-                                        (right = Zero || right = One))))
-                              then
-                                target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
-                            allowed_bins)
+                          if (not ((left_flag land fold_used_bit = fold_used_bit) &&
+                                     (right_flag <> 0))) &&
+                            (not ((right_flag land fold_used_bit = fold_used_bit) &&
+                                     (left_flag <> 0)))
+                          then
+                            List.iter
+                              (fun op ->
+                                if (not (left = Zero || right = Zero)) &&
+                                  (not ((op <> Plus) && left = right)) &&
+                                  (not (op <> Plus &&
+                                          ((left = Zero || left = One) &&
+                                              (right = Zero || right = One))))
+                                then
+                                  target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                              allowed_bins)
                       rights)
                   lefts
             | _ -> failwith "partition bug"
