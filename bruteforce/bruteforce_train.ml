@@ -23,7 +23,7 @@ exception Again
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 10 "" "train" in
+  let core_problem = Remote.fetch_one_core_problem 12 "" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -36,6 +36,7 @@ let main =
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
   let alllist = Brute.get_candidates core_problem in
+  let _ = prerr_endline "Requesting initial guess..." in
   let start_time = Sys.time() in
   let (status, outputs, message) = Remote.eval_id id initialguess in
   if status <> Remoteeval.EvalStatusOk then

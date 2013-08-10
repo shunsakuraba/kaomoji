@@ -441,5 +441,5 @@ let get_candidates core_problem =
   let start_time = Sys.time() in
   let cand_gen_time = start_time -. cand_gen_start_time in
   let _ = prerr_endline (Printf.sprintf "Candidate generation time:
-  %fs\n" cand_gen_time) in
+  %fs" cand_gen_time) in
   alllist
