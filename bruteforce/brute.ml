@@ -415,16 +415,16 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   res
 
 let list_to_unique_list list =
-  let rec list_to_unique_list list m =
+  let rec list_to_unique_list list m dst =
     match list with
-    | [] -> []
+    | [] -> dst
     | (hd::tl) ->
       if PMap.mem hd m then
-	list_to_unique_list tl m
+	list_to_unique_list tl m dst
       else
-	hd :: (list_to_unique_list tl (PMap.add hd true m))
+	list_to_unique_list tl (PMap.add hd true m) (hd::dst)
   in
-  list_to_unique_list list PMap.empty
+  list_to_unique_list list PMap.empty []
 
 let get_candidates core_problem =
   let id, size, (unops, binops, statements) = core_problem in
