@@ -65,7 +65,7 @@ let read_stmt ich =
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 13 "-fold" "train" in
+  let core_problem = Remote.fetch_one_core_problem 13 "-tfold" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let (ich, och) = open_solver size unops binops statements in
