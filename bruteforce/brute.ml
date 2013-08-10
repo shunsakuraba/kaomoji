@@ -125,7 +125,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                       (fun (ifcase, ifcase_flag) ->
                         List.iter
                           (fun (elsecase, elsecase_flag) ->
-                            target := (If0 (cond, ifcase, elsecase), cond_flag lor ifcase_flag lor elsecase_flag) :: !target)
+                            let new_node = If0 (cond, ifcase, elsecase) in
+                            let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
+                            target := (new_node, new_flag) :: !target)
                           elsecases)
                       ifcases)
                   conds
