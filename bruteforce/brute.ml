@@ -413,3 +413,33 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
       (end_time -. start_time)
       (List.length res);
   res
+
+let list_to_unique_list list =
+  let rec list_to_unique_list list m =
+    match list with
+    | [] -> []
+    | (hd::tl) ->
+      if PMap.mem hd m then
+	list_to_unique_list tl m
+      else
+	hd :: (list_to_unique_list tl (PMap.add hd true m))
+  in
+  list_to_unique_list list PMap.empty
+
+let get_candidates core_problem =
+  let id, size, (unops, binops, statements) = core_problem in
+  let cand_gen_start_time = Sys.time() in
+  let allowed = (unops, binops, statements) in
+  let alllist_initial = gen2 allowed size in
+  let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
+			    (List.length alllist_initial)) in
+  let simplified = List.map Simplifier.simplify alllist_initial in
+  let () = prerr_endline "Simplification finished." in
+  let alllist = list_to_unique_list simplified in
+  let num_candidates = List.length alllist in
+  let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
+  let start_time = Sys.time() in
+  let cand_gen_time = start_time -. cand_gen_start_time in
+  let _ = prerr_endline (Printf.sprintf "Candidate generation time:
+  %fs\n" cand_gen_time) in
+  alllist

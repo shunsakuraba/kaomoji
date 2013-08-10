@@ -23,7 +23,7 @@ exception Again
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 15 "fold" "train" in
+  let core_problem = Remote.fetch_one_core_problem 10 "" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -35,21 +35,8 @@ let main =
 	(Array.init 192
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
-  let allowed = (unops, binops, statements) in
-  let cand_gen_start_time = Sys.time() in
-  let alllist_initial = Brute.gen2 allowed size in
-  let () = Printf.printf "Initialized candidate list (%d elements)\n"
-  (List.length alllist_initial) in
-  let alllist = alllist_initial in
-  (* let alllist = List.unique (List.map Simplifier.simplify alllist_initial) in *)
-  let num_candidates = List.length alllist in
-  let () = Printf.printf "Compressed candidate list (%d elements)\n" num_candidates in
-  if num_candidates > 10000000 then
-    print_endline "Abandoned: too many candidates"
-  else
+  let alllist = Brute.get_candidates core_problem in
   let start_time = Sys.time() in
-  let cand_gen_time = start_time -. cand_gen_start_time in
-  let _ = Printf.printf "Candidate generation time: %fs\n" cand_gen_time in
   let (status, outputs, message) = Remote.eval_id id initialguess in
   if status <> Remoteeval.EvalStatusOk then
     begin
@@ -78,7 +65,7 @@ let main =
     in
     let _ = GuessCaller.guess_call (List.combine initialguess outputs)
       guess_function
-      allowed
+      (unops, binops, statements)
       size
       alllist
     in
