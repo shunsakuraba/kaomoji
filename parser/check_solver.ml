@@ -3,6 +3,7 @@ open Train;;
 open Util;;
 open Eval;;
 open Print;;
+open Type;;
 
 let check_brute id allowed_ops_tuple size challenge =
   let answers = Brute.gen allowed_ops_tuple size in
@@ -29,15 +30,27 @@ let check_brute id allowed_ops_tuple size challenge =
            (fun _ -> rand64 ())) in
     bitseq @ fixedseq @ randseq in
   let outputs = List.map (fun x -> eval answer x) initialguess in
+
+  let uns, bins, stmts = allowed_ops_tuple in
+  Printf.printf
+    "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+    (Print.print answer)
+    size
+    (String.concat " " (List.map unop_to_string uns))
+    (String.concat " " (List.map binop_to_string bins))
+    (String.concat " " (List.map statement_to_string stmts))
+    (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
+    (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs));
+
   let guess_function x =
-    Printf.printf
-      "%s\n  %s\n  %s\n  original: %s\n  guess:    %s\n  answer:   %s\n"
-      id
-      (format_operator_tuple allowed_ops_tuple)
-      (string_of_int size)
-      challenge
-      (Print.print x)
-      (Print.print answer);
+    (* Printf.printf *)
+    (*   "%s\n  %s\n  %s\n  original: %s\n  guess:    %s\n  answer:   %s\n" *)
+    (*   id *)
+    (*   (format_operator_tuple allowed_ops_tuple) *)
+    (*   (string_of_int size) *)
+    (*   challenge *)
+    (*   (Print.print x) *)
+    (*   (Print.print answer); *)
     Feedback.Success
   in
   let alllist = Brute.gen allowed_ops_tuple size in

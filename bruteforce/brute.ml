@@ -63,7 +63,7 @@ let needed_depth bits =
         ((bits lsr 11) land 1)) * 2
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
-  print_endline "Generating";
+  prerr_endline "Generating";
   let if0_in_ops = List.mem SIf0 allowed_stmts in
   let fold_in_ops = List.mem SFold allowed_stmts in
   let tfold_in_ops = List.mem STfold allowed_stmts in

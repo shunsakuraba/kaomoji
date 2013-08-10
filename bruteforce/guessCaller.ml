@@ -18,7 +18,7 @@ let guess_call initial feedback allowed depth alllist =
           initial)
       alllist
   in
-  let () = Printf.printf "After filtering %d elements remains\n" (List.length initiallist) in
+  let () = Printf.eprintf "After filtering %d elements remains\n" (List.length initiallist) in
   let curlist = ref initiallist in
   try
     while true do
