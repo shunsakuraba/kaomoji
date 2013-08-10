@@ -1,5 +1,5 @@
 # Zombie solver via SMT
-# Why zombie? Cause It'll counter phoenix.
+# Why zombie? 'Cause It'll counter phoenix.
 from z3 import *
 
 import sys
@@ -16,36 +16,39 @@ else:
 
 #(unops_use, binops_use, triops_use) = (['shl1'], [], [])
 
-ans = sys.stdin.next()
-size = int(sys.stdin.next().strip())
-unops_use = sys.stdin.next().split()
-binops_use = sys.stdin.next().split()
-triops_use = sys.stdin.next().split()
+size = int(sys.stdin.readline().strip())
+unops_use = sys.stdin.readline().split()
+binops_use = sys.stdin.readline().split()
+triops_use = sys.stdin.readline().split()
 
 if "tfold" in triops_use or "fold" in triops_use:
     print >> sys.stderr, "Does not support fold / tfold yet"
     sys.exit(1)
 
-oracle_inputs = [long(x, 0) for x in sys.stdin.next().split()]
-oracle_outputs = [long(x, 0) for x in sys.stdin.next().split()]
+print >> sys.stderr, "Initializing with size=%d" % size
+# print "Initializing with size=%d" % size
+# sys.stdout.flush()
 
 INPUT_PER_ORACLE = 1
-EXTENDED_INPUT = INPUT_PER_ORACLE + 2
+EXTENDED_INPUT = INPUT_PER_ORACLE + 2 # 2 is "0" and "1"
 MAXCMP = size - 1 - (len(unops_use) + len(binops_use) * 2 + len(triops_use) * 3 - 1)
-NORACLE = len(oracle_inputs)
 OP_KINDS = len(unops_use) + len(binops_use) + len(triops_use)
 LIB_LINES = MAXCMP * OP_KINDS
 EXTENDED_LINES = EXTENDED_INPUT + LIB_LINES
 
-if NORACLE > cut_oracle:
-    NORACLE = cut_oracle
+#NORACLE = int(sys.stdin.next().striip())
 
-ORACLES = [ (oracle_inputs[i], oracle_outputs[i]) for i in range(NORACLE)]
+#oracle_inputs = [long(x, 0) for x in sys.stdin.next().split()]
+#oracle_outputs = [long(x, 0) for x in sys.stdin.next().split()]
+
+ORACLES = []
+#ORACLES = [ (oracle_inputs[i], oracle_outputs[i]) for i in range(NORACLE)]
 IN = 0
-OUT = 1
+OUT = INPUT_PER_ORACLE
 
 #print ORACLES
 
+S = Solver()
 
 lineops = []
 ninputs = []
@@ -61,14 +64,19 @@ LI = [[Int("LI_%i_%i" % (i, j)) for j in range(ninputs[i])] for i in range(LIB_L
 col_li = [And(0 <= LI[i][j],
               LI[i][j] < EXTENDED_LINES)
           for i in range(LIB_LINES) for j in range(ninputs[i])]
+S.add(col_li)
 
 LO = [Int("LO_%i" % i) for i in range(LIB_LINES)]
 col_lo = [And(EXTENDED_INPUT <= LO[i],
               LO[i] < EXTENDED_LINES)
           for i in range(LIB_LINES)]
+S.add(col_lo)
 
 col_cons = [ Distinct(LO) ]
+S.add(col_cons)
+
 col_acyc = [ LI[i][j] < LO[i] for i in range(LIB_LINES) for j in range(ninputs[i])]
+S.add(col_acyc)
 
 col_noreuse = []
 for i in range(LIB_LINES):
@@ -79,14 +87,28 @@ for i in range(LIB_LINES):
                     continue
                 col_noreuse.append(Implies(LI[i][j] >= EXTENDED_INPUT,
                                            LI[i][j] != LI[k][l]))
+S.add(col_noreuse)
 
-col_lib = []
+print "Initialize complete"
+sys.stdout.flush()
 
 I = []
 O = []
-for nin in range(NORACLE):
+
+nin = 0
+while True:
+    # Add one oracle
     I.append([])
     O.append([])
+
+    line = sys.stdin.readline()
+    if line.strip() == "Q":
+        break
+    print >> sys.stderr, "Incoming input: %s" % line
+    [oin, oout] = [long(x, 0) for x in line.split()]
+    ORACLES.append((oin, oout))
+
+    col_lib = []
     for opl in range(MAXCMP):
         for (opuse, arity) in [(unops_use, 1),
                                (binops_use, 2),
@@ -126,9 +148,9 @@ for nin in range(NORACLE):
                 
                 I[nin].append(Icur)
                 O[nin].append(Ocur)
+    S.add(col_lib)
 
-col_conn = []
-for nin in range(NORACLE):
+    col_conn = []
     for i in range(LIB_LINES):
         for j in range(ninputs[i]):
             for k in range(LIB_LINES):
@@ -150,53 +172,39 @@ for nin in range(NORACLE):
         col_conn.append(Implies(LO[i] == (EXTENDED_LINES - 1),
                                 O[nin][i] == BitVecVal(ORACLES[nin][OUT], 64)))
 
-#print I
-#print O
+    S.add(col_conn)
+    nin += 1
+    print >> sys.stderr, "Start Solving with %d oracles" % nin
 
-S = Solver()
-S.add(col_li)
-S.add(col_lo)
-S.add(col_cons)
-S.add(col_acyc)
-S.add(col_noreuse)
-S.add(col_lib)
-S.add(col_conn)
+    if S.check() != sat:
+        print >> sys.stderr, "Could not find solution"
+        sys.exit(1)
 
-#print S
-print "SAT construction done. Start solving ..."
+    m = S.model()
+    lines = [("OUT", "IN[]", "op") for i in range(LIB_LINES)]
 
-if S.check() != sat:
-    print "Could not find solution"
-    sys.exit(1)
+    for i in range(LIB_LINES):
+        inelms = [] 
+        for j in range(ninputs[i]):
+            li = m[LI[i][j]].as_long()
+            if li < INPUT_PER_ORACLE:
+                inelms.append("input")
+            elif li < INPUT_PER_ORACLE + 2:
+                inelms.append(str(li - INPUT_PER_ORACLE))
+            else:
+                inelms.append("x%d" % int(li - EXTENDED_INPUT))
+        oute = m[LO[i]].as_long() - EXTENDED_INPUT
+        ope = lineops[i]
+        lines[i] = (oute, inelms, ope)
 
-m = S.model()
+    lines.sort()
+    print len(lines)
+    print >> sys.stderr, len(lines)
+    for l in lines:
+        print "%d %s %s" % (l[0], l[2], ",".join(l[1]))
+        print >> sys.stderr, "%d %s %s" % (l[0], l[2], ",".join(l[1]))
+    sys.stdout.flush()
 
-# out, i, op
-lines = [("OUT", "IN[]", "op") for i in range(LIB_LINES)]
-
-for i in range(LIB_LINES):
-    inelms = [] 
-    for j in range(ninputs[i]):
-        li = m[LI[i][j]].as_long()
-        if li < INPUT_PER_ORACLE:
-            inelms.append("input")
-        elif li < INPUT_PER_ORACLE + 2:
-            inelms.append(str(li - INPUT_PER_ORACLE))
-        else:
-            inelms.append("x%d" % int(li - EXTENDED_INPUT))
-    oute = m[LO[i]].as_long() - EXTENDED_INPUT
-    ope = lineops[i]
-    lines[i] = (oute, inelms, ope)
-
-lines.sort()
-for l in lines:
-    print "x%d = %s(%s)" % (l[0], l[2], ",".join(l[1]))
-    
-print ans    
-
-S.add(Not(LI[0][0] == 0))
-S.check()
-print S.model
 
 
 
