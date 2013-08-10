@@ -222,14 +222,11 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target
+    Array.set groups i !target;
+    Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
+    flush_all ()
   done;
 
-  prerr_endline "Before filtering";
-  Array.iteri
-    (fun i x -> Printf.eprintf "  depth=%d size=%d\n" i (List.length x))
-    groups;
-  flush_all ();
 
   let merged = ref [] in
 
