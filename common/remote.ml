@@ -21,15 +21,20 @@ let fetch_one_core_problem size_limit ops_limit target =
   if target = "real" then
     let good_problems = fetch_good_problems size_limit ops_limit in
     if (List.length good_problems) > 0 then
-      let problem = (List.nth good_problems 0) in
+      let rand_id = Random.int (List.length good_problems) in
+      let problem = (List.nth good_problems rand_id) in
       let _ = print_endline (format_problem problem 0) in
-      let _ = input_line stdin in
+      (* let _ = input_line stdin in *)
       let (id, size, ops, solved, time_left) = problem in
       (id, size, ops)
     else
       failwith "No more problem matching the condition."
   else if target = "train" then
     let train = fetch_train size_limit ops_limit in
+    let (id, size, ops, challenge) = train in
+    (id, size, ops)
+  else if target = "train_local" then
+    let train = Train.read_train_from_file "trains.json" in
     let (id, size, ops, challenge) = train in
     (id, size, ops)
   else
