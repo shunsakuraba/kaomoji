@@ -94,9 +94,11 @@ let is_good_unop_cand cand =
 
 let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Printf.eprintf
-    "Generating size=%d %s"
+    "Generating(gen2) size=%d %s\n"
     depth
-    (format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
+    (Api.format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
+
+  let start_time = Sys.time() in
 
   let fold_used_bit = 1 lsl 30 in
 
@@ -243,10 +245,22 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
           with Not_found ->
             ())
     (Array.get groups (depth - 1));
+
+  let end_time = Sys.time() in
+  Printf.eprintf
+    "Generated(gen2) %fs\n"
+    (end_time -. start_time);
+
   !merged
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
-  prerr_endline "Generating";
+  Printf.eprintf
+    "Generating(gen) size=%d %s\n"
+    depth
+    (Api.format_operator_tuple (allowed_un, allowed_bin, allowed_stmts));
+
+  let start_time = Sys.time() in
+
   let if0_in_ops = List.mem SIf0 allowed_stmts in
   let tfold_in_ops = List.mem STfold allowed_stmts in
   let rec gen input_shadowed nid unused can_use_fold depth = 
@@ -369,11 +383,17 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
              allowed_stmts) land (lnot (unused_stmts_bit STfold)))
            allowed_bin)
        allowed_un) in
-  if tfold_in_ops then
-    let inner = gen true 2 unused false (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
-    List.map
-      (fun (x, x_used) -> Fold (Input, Zero, 0, 1, x))
-      inner
-  else
-    let fold_in_ops = List.mem SFold allowed_stmts in
-    List.map (fun (x, x_used) -> x) (gen false 0 unused fold_in_ops (depth - 1) (* -1 is from the big "lambda" of outside *))
+  let res =
+    if tfold_in_ops then
+      let inner = gen true 2 unused false (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
+      List.map
+        (fun (x, x_used) -> Fold (Input, Zero, 0, 1, x))
+        inner
+    else
+      let fold_in_ops = List.mem SFold allowed_stmts in
+      List.map (fun (x, x_used) -> x) (gen false 0 unused fold_in_ops (depth - 1) (* -1 is from the big "lambda" of outside *)) in
+  let end_time = Sys.time() in
+    Printf.eprintf
+      "Generated(gen) %fs\n"
+      (end_time -. start_time);
+  res
