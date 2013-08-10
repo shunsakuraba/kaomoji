@@ -97,6 +97,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
     "Generating(gen2) size=%d %s\n"
     depth
     (Api.format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
+  flush_all ();
 
   let start_time = Sys.time() in
 
@@ -128,15 +129,23 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                 let elsecases = Array.get groups d3 in
                 List.iter
                   (fun (cond, cond_flag) ->
-                    List.iter
-                      (fun (ifcase, ifcase_flag) ->
-                        List.iter
-                          (fun (elsecase, elsecase_flag) ->
-                            let new_node = If0 (cond, ifcase, elsecase) in
-                            let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                            target := (new_node, new_flag) :: !target)
-                          elsecases)
-                      ifcases)
+                    if cond <> Zero && cond <> One then
+                      List.iter
+                        (fun (ifcase, ifcase_flag) ->
+                          if (not ((cond = Ident(0) && (ifcase_flag land 1) = 1))) &&
+                            (not ((cond = Ident(1) && (ifcase_flag land 2) = 2))) then
+                          List.iter
+                            (fun (elsecase, elsecase_flag) ->
+                              if (not ((ifcase_flag land fold_used_bit = fold_used_bit) &&
+                                          (elsecase_flag <> 0))) &&
+                                (not ((elsecase_flag land fold_used_bit = fold_used_bit) &&
+                                         (ifcase_flag <> 0)))
+                              then
+                                let new_node = If0 (cond, ifcase, elsecase) in
+                                let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
+                                target := (new_node, new_flag) :: !target)
+                            elsecases)
+                        ifcases)
                   conds
             | _ -> failwith "partition bug"
         )
@@ -204,53 +213,57 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                     List.iter
                       (fun (right, right_flag) ->
                         if left <= right then
-                          List.iter
-                            (fun op ->
-                              target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
-                            allowed_bins)
+                          if (not ((left_flag land fold_used_bit = fold_used_bit) &&
+                                     (right_flag <> 0))) &&
+                            (not ((right_flag land fold_used_bit = fold_used_bit) &&
+                                     (left_flag <> 0)))
+                          then
+                            List.iter
+                              (fun op ->
+                                if (not (left = Zero || right = Zero)) &&
+                                  (not ((op <> Plus) && left = right)) &&
+                                  (not (op <> Plus &&
+                                          ((left = Zero || left = One) &&
+                                              (right = Zero || right = One))))
+                                then
+                                  target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                              allowed_bins)
                       rights)
                   lefts
             | _ -> failwith "partition bug"
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target
+    Array.set groups i !target;
+    Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
+    flush_all ()
   done;
 
-  prerr_endline "Before filtering";
-  Array.iteri
-    (fun i x -> Printf.eprintf "  depth=%d size=%d\n" i (List.length x))
-    groups;
 
   let merged = ref [] in
 
-  if depth > 5 && List.mem STfold allowed_stmts then
+  for j = 1 to depth do
+    if j > 5 && List.mem STfold allowed_stmts then
+      List.iter
+        (fun (y, y_flag) ->
+          if y_flag land (lnot 3) = 0 then
+            merged := Fold (Input, Zero, 0, 1, y) :: !merged)
+        (Array.get groups (j - 5));
+
     List.iter
       (fun (y, y_flag) ->
-        if y_flag land (lnot 3) = 0 then
-          try
-            (* let _ = Eval.eval y 0L in *)
-            merged := Fold (Input, Zero, 0, 1, y) :: !merged
-          with Not_found ->
-            ())
-      (Array.get groups (depth - 5));
-
-  List.iter
-    (fun (y, y_flag) ->
-      if y_flag land (lnot fold_used_bit) = 0 then
-        if y_flag = 0 then
-          try
-            (* let _ = Eval.eval y 0L in *)
-            merged := y :: !merged
-          with Not_found ->
-            ())
-    (Array.get groups (depth - 1));
+        if y_flag land (lnot fold_used_bit) = 0 then
+          if y_flag = 0 then
+            merged := y :: !merged)
+      (Array.get groups (j - 1))
+  done;
 
   let end_time = Sys.time() in
   Printf.eprintf
     "Generated(gen2) %fs size=%d\n"
     (end_time -. start_time)
     (List.length !merged);
+  flush_all ();
 
   !merged
 
@@ -259,6 +272,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
     "Generating(gen) size=%d %s\n"
     depth
     (Api.format_operator_tuple (allowed_un, allowed_bin, allowed_stmts));
+  flush_all ();
 
   let start_time = Sys.time() in
 
@@ -399,3 +413,33 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
       (end_time -. start_time)
       (List.length res);
   res
+
+let list_to_unique_list list =
+  let rec list_to_unique_list list m dst =
+    match list with
+    | [] -> dst
+    | (hd::tl) ->
+      if PMap.mem hd m then
+	list_to_unique_list tl m dst
+      else
+	list_to_unique_list tl (PMap.add hd true m) (hd::dst)
+  in
+  list_to_unique_list list PMap.empty []
+
+let get_candidates core_problem =
+  let id, size, (unops, binops, statements) = core_problem in
+  let cand_gen_start_time = Sys.time() in
+  let allowed = (unops, binops, statements) in
+  let alllist_initial = gen2 allowed size in
+  let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
+			    (List.length alllist_initial)) in
+  let simplified = List.map Simplifier.simplify alllist_initial in
+  let () = prerr_endline "Simplification finished." in
+  let alllist = list_to_unique_list simplified in
+  let num_candidates = List.length alllist in
+  let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
+  let start_time = Sys.time() in
+  let cand_gen_time = start_time -. cand_gen_start_time in
+  let _ = prerr_endline (Printf.sprintf "Candidate generation time:
+  %fs" cand_gen_time) in
+  alllist
