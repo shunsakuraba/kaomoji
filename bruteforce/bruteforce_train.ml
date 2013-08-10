@@ -22,10 +22,10 @@ exception Again
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 13 "tfold" "train" in
+  let core_problem = Remote.fetch_one_core_problem 15 "tfold" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
-  let initialguess = 
+  let initialguess =
     let bitseq = 
       Array.to_list
 	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
@@ -37,8 +37,11 @@ let main =
   let allowed = (unops, binops, statements) in
   let cand_gen_start_time = Sys.time() in
   let alllist = Brute.gen allowed size in
-  let () =
-    Printf.printf "Initialized candidate list (%d elements)\n" (List.length alllist) in
+  let num_candidates = List.length alllist in
+  let () = Printf.printf "Initialized candidate list (%d elements)\n" num_candidates in
+  if num_candidates > 1000000 then
+    print_endline "Abandoned: too many candidates"
+  else
   let start_time = Sys.time() in
   let cand_gen_time = start_time -. cand_gen_start_time in
   let _ = Printf.printf "Candidate generation time: %fs\n" cand_gen_time in
