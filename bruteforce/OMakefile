@@ -116,7 +116,7 @@ OCAMLINCLUDES += ../common
 #
 # The default values are defined as follows:
 #
-# NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
+NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
 # BYTE_ENABLED = $(not $(OCAMLOPT_EXISTS))
 
 #
@@ -124,7 +124,7 @@ OCAMLINCLUDES += ../common
 #
 OCAMLFLAGS    += -annot
 # OCAMLCFLAGS   +=
-# OCAMLOPTFLAGS +=
+OCAMLOPTFLAGS += -inline 10000
 # OCAML_LINK_FLAGS +=
 # OCAML_BYTE_LINK_FLAGS +=
 # OCAML_NATIVE_LINK_FLAGS +=
@@ -157,9 +157,11 @@ USE_OCAMLFIND = true
 
 OCAMLPACKS[] =
   netclient
+  extlib
   http
   yojson
   unix
+
 
 FILES[] =
    bruteforce_train

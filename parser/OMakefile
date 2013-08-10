@@ -106,6 +106,7 @@ OCAMLPACKS[] =
   netclient
   http
   yojson
+  extlib
 
 #
 # Include path
