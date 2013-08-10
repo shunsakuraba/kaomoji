@@ -11,11 +11,23 @@ let check_brute id allowed_ops_tuple size challenge =
     let bitseq = 
       Array.to_list
         (Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    let fixedseq =
+      [0xFFFFFFFFFFFFFFFFL;
+       0x0000000000000000L;
+       0xAAAAAAAAAAAAAAAAL;
+       0x5555555555555555L;
+       0xFFFFFFFF00000000L;
+       0x00000000FFFFFFFFL;
+       0x0000FFFFFFFF0000L;
+       0xFFFF00000000FFFFL;
+       0xFF00FF00FF00FF00L
+      ] in
+    (* Random.init 0; *)
     let randseq = 
       Array.to_list
-        (Array.init 192
+        (Array.init (256 - (List.length bitseq) - (List.length fixedseq))
            (fun _ -> rand64 ())) in
-    bitseq @ randseq in
+    bitseq @ fixedseq @ randseq in
   let outputs = List.map (fun x -> eval answer x) initialguess in
   let guess_function x =
     Printf.printf
@@ -62,6 +74,7 @@ let check_by_problems () =
 
   List.iter
     (fun (id, size, allowed_ops_tuple, solved, time_over) ->
+      if size = 10 then failwith "stop" else
       check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)))
     sorted_problems
 ;;
