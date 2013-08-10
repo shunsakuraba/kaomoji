@@ -91,7 +91,7 @@ let send_solver_oracle ch iolist =
       ()) iolist
 
 let read_stmt ich och pid = 
-  let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] 15.0 in
+  let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] 20.0 in
   if selin = [] 
   then
     (* Forced timeout *)

@@ -26,6 +26,7 @@ for (op, n) in ops:
     size_by_op[op] = n
 size_by_op['0'] = 1
 size_by_op['1'] = 1
+print >> sys.stderr, size_by_op
 
 #if "tfold" in triops_use or "fold" in triops_use:
 #    print >> sys.stderr, "Does not support fold / tfold yet"
