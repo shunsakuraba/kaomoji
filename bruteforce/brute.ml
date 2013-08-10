@@ -93,7 +93,10 @@ let is_good_unop_cand cand =
   | _ -> true
 
 let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
-  prerr_endline "Generating";
+  Printf.eprintf
+    "Generating size=%d %s"
+    depth
+    (format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
 
   let fold_used_bit = 1 lsl 30 in
 
