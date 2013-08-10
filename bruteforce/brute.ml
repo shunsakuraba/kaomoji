@@ -84,6 +84,12 @@ let is_good_unop_cand cand =
   | Op1 (Shr1, One) -> false  (* = Shr1 Zero *)
   | Op1 (Shr4, One) -> false  (* = Shr4 Zero *)
   | Op1 (Shr16, One) -> false  (* = Shr16 Zero *)
+  | Op1 (Shr1, Op1 (Shl1, One)) -> false  (* = Shr1 (Shl1 Zero) *)
+  | Op1 (Shr4, Op1 (Shl1, One)) -> false  (* = Shr4 (Shl1 Zero) *)
+  | Op1 (Shr16, Op1 (Shl1, One)) -> false  (* = Shr16 (Shl1 Zero) *)
+  | Op1 (Shl1, Op1 (Shr1, Zero)) -> false  (* = Shr1 (Shl1 Zero) *)
+  | Op1 (Shl1, Op1 (Shr4, Zero)) -> false  (* = Shr4 (Shl1 Zero) *)
+  | Op1 (Shl1, Op1 (Shr16, Zero)) -> false  (* = Shr16 (Shl1 Zero) *)
   | _ -> true
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
@@ -117,7 +123,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 		    [d1; d2; d3] ->
 	              List.iter
                         (fun (x, x_used) ->
-			  if x <> Zero then
+			  if x <> One then  (* same as if0 Zero *)
 	                  List.iter
                             (fun (y, y_used) ->
 		              List.iter 
