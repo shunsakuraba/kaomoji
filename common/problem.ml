@@ -7,7 +7,7 @@ let parse_problem_json j =
     let size = ref 0 in
     let operators = ref ([], [], []) in
     let solved = ref false in
-    let time_left = ref 0.0 in
+    let time_left = ref 300.0 in
 
     let parse_kv = function
       | "id", `String(s) ->
