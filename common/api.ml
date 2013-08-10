@@ -40,9 +40,13 @@ let parse_operator_string_list l =
               statements := SFold :: !statements
             | "tfold" ->
               statements := STfold :: !statements
-            | _ -> raise Parse_error
+            | op ->
+              prerr_string ("Unknown op: " ^ op);
+              raise Parse_error
         end
-      | _ -> raise Parse_error
+      | _ ->
+        prerr_string "Malformed operators set";
+        raise Parse_error
     )
     l;
 
