@@ -65,9 +65,8 @@ let needed_depth bits =
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   print_endline "Generating";
   let if0_in_ops = List.mem SIf0 allowed_stmts in
-  let fold_in_ops = List.mem SFold allowed_stmts in
   let tfold_in_ops = List.mem STfold allowed_stmts in
-  let rec gen input_shadowed nid unused depth = 
+  let rec gen input_shadowed nid unused can_use_fold depth = 
     if needed_depth unused > depth then
       begin
         (* print_endline "edagare"; *)
@@ -98,9 +97,9 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
                             (fun (y, y_used) ->
 		              List.iter 
 		                (fun (z, z_used) -> cands := (If0 (x, y, z), x_used lor y_used lor z_used lor (unused_stmts_bit SIf0)) :: !cands)
-		                (gen input_shadowed nid (new_unused land (lnot x_used) land (lnot y_used)) d3))
-		            (gen input_shadowed nid 0 d2))
-		        (gen input_shadowed nid 0 d1)
+		                (gen input_shadowed nid (new_unused land (lnot x_used) land (lnot y_used)) can_use_fold d3))
+		            (gen input_shadowed nid 0 can_use_fold d2))
+		        (gen input_shadowed nid 0 can_use_fold d1)
 		  | _ -> failwith "partition bugged")
 		partitions;
 	      !cands
@@ -108,8 +107,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	    if0cands
 	  else [] in
 	let foldcands =
-	  if fold_in_ops
-	  then
+	  if can_use_fold then
 	    let foldcands = 
 	      let partitions = partition 3 (k - 2) in
 	      let cands = ref [] in
@@ -123,9 +121,9 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
                                 (fun (y, y_used) ->
 			          List.iter
                                     (fun (z, z_used) -> cands := (Fold (x, y, nid, nid + 1, z), x_used lor y_used lor z_used lor (unused_stmts_bit SFold)) :: !cands)
-			            (gen input_shadowed (nid + 2) (new_unused land (lnot x_used) land (lnot y_used)) d3))
-			        (gen input_shadowed nid 0 d2))
-			  (gen input_shadowed nid 0 d1)
+			            (gen input_shadowed (nid + 2) (new_unused land (lnot x_used) land (lnot y_used)) false d3))
+			        (gen input_shadowed nid 0 false d2))
+			  (gen input_shadowed nid 0 false d1)
 		  | _ -> failwith "partition bugged")
 		partitions;
 	      !cands in
@@ -136,7 +134,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 	  List.iter (fun op ->
 	    List.iter (fun (x, x_used) ->
 	      cands := (Op1 (op, x), x_used lor (unused_un_bit op)) :: !cands)
-	      (gen input_shadowed nid (unused land (lnot (unused_un_bit op))) (depth - 1)))
+	      (gen input_shadowed nid (unused land (lnot (unused_un_bit op))) can_use_fold (depth - 1)))
 	    allowed_un;
 	  !cands in
 	let binopcands = 
@@ -153,8 +151,8 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 		          List.iter
                             (fun op -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands)
                             allowed_bin)
-                        (gen input_shadowed nid 0 d2))
-	            (gen input_shadowed nid 0 d1)
+                        (gen input_shadowed nid 0 can_use_fold d2))
+	            (gen input_shadowed nid 0 can_use_fold d1)
 		  (* List.iter *)
                   (*   (fun op -> *)
                   (*     let new_unused = unused land (lnot (unused_bin_bit op)) in *)
@@ -184,9 +182,10 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
            allowed_bin)
        allowed_un) in
   if tfold_in_ops then
-    let inner = gen true 2 unused (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
+    let inner = gen true 2 unused false (depth - 5) in (* -5 = -1 (lambda), -2 (fold / lambda), -1 (Input), -1 (Zero) *)
     List.map
       (fun (x, x_used) -> Fold (Input, Zero, 0, 1, x))
       inner
   else
-    List.map (fun (x, x_used) -> x) (gen false 0 unused (depth - 1) (* -1 is from the big "lambda" of outside *))
+    let fold_in_ops = List.mem SFold allowed_stmts in
+    List.map (fun (x, x_used) -> x) (gen false 0 unused fold_in_ops (depth - 1) (* -1 is from the big "lambda" of outside *))
