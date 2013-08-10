@@ -9,7 +9,7 @@ if len(sys.argv) >= 2:
 else:
     cut_oracle = 9999
 
-nuops = '0 1'.split()
+#nuops = '0 1'.split()
 #unops = 'not shl1 shr1 shr4 shr16'.split()
 #binops = 'and or xor plus'.split()
 #triops = 'if0'.split()
@@ -30,11 +30,12 @@ oracle_inputs = [long(x, 0) for x in sys.stdin.next().split()]
 oracle_outputs = [long(x, 0) for x in sys.stdin.next().split()]
 
 INPUT_PER_ORACLE = 1
+EXTENDED_INPUT = INPUT_PER_ORACLE + 2
 MAXCMP = size - 1 - (len(unops_use) + len(binops_use) * 2 + len(triops_use) * 3 - 1)
 NORACLE = len(oracle_inputs)
-OP_KINDS = 2 + len(unops_use) + len(binops_use) + len(triops_use)
+OP_KINDS = len(unops_use) + len(binops_use) + len(triops_use)
 LIB_LINES = MAXCMP * OP_KINDS
-EXTENDED_LINES = INPUT_PER_ORACLE + LIB_LINES
+EXTENDED_LINES = EXTENDED_INPUT + LIB_LINES
 
 if NORACLE > cut_oracle:
     NORACLE = cut_oracle
@@ -49,8 +50,7 @@ OUT = 1
 lineops = []
 ninputs = []
 for opl in range(MAXCMP):
-    for (opuse, arity) in [(nuops, 0),
-                           (unops_use, 1),
+    for (opuse, arity) in [(unops_use, 1),
                            (binops_use, 2),
                            (triops_use, 3)]:
         for op in opuse:
@@ -63,7 +63,7 @@ col_li = [And(0 <= LI[i][j],
           for i in range(LIB_LINES) for j in range(ninputs[i])]
 
 LO = [Int("LO_%i" % i) for i in range(LIB_LINES)]
-col_lo = [And(1 <= LO[i],
+col_lo = [And(EXTENDED_INPUT <= LO[i],
               LO[i] < EXTENDED_LINES)
           for i in range(LIB_LINES)]
 
@@ -77,7 +77,7 @@ for i in range(LIB_LINES):
             for l in range(ninputs[k]):
                 if (i, j) == (k, l):
                     continue
-                col_noreuse.append(Implies(LI[i][j] >= INPUT_PER_ORACLE,
+                col_noreuse.append(Implies(LI[i][j] >= EXTENDED_INPUT,
                                            LI[i][j] != LI[k][l]))
 
 col_lib = []
@@ -88,8 +88,7 @@ for nin in range(NORACLE):
     I.append([])
     O.append([])
     for opl in range(MAXCMP):
-        for (opuse, arity) in [(nuops, 0),
-                               (unops_use, 1),
+        for (opuse, arity) in [(unops_use, 1),
                                (binops_use, 2),
                                (triops_use, 3)]:
             for op in opuse:
@@ -99,11 +98,7 @@ for nin in range(NORACLE):
                 for a in range(arity):
                     Icur.append(BitVec("I%s_%i" % (suffix, a), 64))
                 Ocur = BitVec("O%s" % suffix, 64)
-                if op == '0':
-                    constr = (Ocur == BitVecVal(0, 64))
-                elif op == '1':
-                    constr = (Ocur == BitVecVal(1, 64))
-                elif op == 'not':
+                if op == 'not':
                     constr = (Ocur == ~(Icur[0]))
                 elif op == 'shl1':
                     constr = (Ocur == Icur[0] << 1)
@@ -143,6 +138,14 @@ for nin in range(NORACLE):
             for j in range(ninputs[i]):
                 col_conn.append(Implies(LI[i][j] == inp,
                                         I[nin][i][j] == BitVecVal(ORACLES[nin][IN + inp], 64)))
+
+    for i in range(LIB_LINES):
+        for j in range(ninputs[i]):
+            col_conn.append(Implies(LI[i][j] == INPUT_PER_ORACLE + 0,
+                                    I[nin][i][j] == BitVecVal(0, 64)))
+            col_conn.append(Implies(LI[i][j] == INPUT_PER_ORACLE + 1,
+                                    I[nin][i][j] == BitVecVal(1, 64)))
+
     for i in range(LIB_LINES):
         col_conn.append(Implies(LO[i] == (EXTENDED_LINES - 1),
                                 O[nin][i] == BitVecVal(ORACLES[nin][OUT], 64)))
@@ -177,9 +180,11 @@ for i in range(LIB_LINES):
         li = m[LI[i][j]].as_long()
         if li < INPUT_PER_ORACLE:
             inelms.append("input")
+        elif li < INPUT_PER_ORACLE + 2:
+            inelms.append(str(li - INPUT_PER_ORACLE))
         else:
-            inelms.append("x%d" % int(li - INPUT_PER_ORACLE))
-    oute = m[LO[i]].as_long() - INPUT_PER_ORACLE
+            inelms.append("x%d" % int(li - EXTENDED_INPUT))
+    oute = m[LO[i]].as_long() - EXTENDED_INPUT
     ope = lineops[i]
     lines[i] = (oute, inelms, ope)
 
@@ -189,6 +194,9 @@ for l in lines:
     
 print ans    
 
+S.add(Not(LI[0][0] == 0))
+S.check()
+print S.model
 
 
 
