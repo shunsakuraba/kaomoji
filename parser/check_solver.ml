@@ -118,7 +118,7 @@ let rec check_by_train_list () =
 
   let count = ref 0 in
 
-  check_brute id allowed_ops_tuple (size + 4) challenge count;
+  check_brute id allowed_ops_tuple 10 challenge count;
   check_by_train_list ()
 ;;
 
