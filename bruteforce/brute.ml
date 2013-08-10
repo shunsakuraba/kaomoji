@@ -92,6 +92,146 @@ let is_good_unop_cand cand =
   | Op1 (Shl1, Op1 (Shr16, Zero)) -> false  (* = Shr16 (Shl1 Zero) *)
   | _ -> true
 
+let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
+  prerr_endline "Generating";
+
+  let groups = Array.init (depth + 1) (fun _ -> []) in
+
+  let num_ids =
+    if List.mem STfold allowed_stmts then 2
+    else if List.mem SFold allowed_stmts then 2
+    else 0 in
+  let ids = Array.to_list (Array.init num_ids (fun x -> x)) in
+
+  Array.set
+    groups
+    1
+    ((Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))));
+
+  for i = 2 to depth do
+    let target = ref (Array.get groups i) in
+
+    if List.mem SIf0 allowed_stmts then
+      List.iter
+        (fun part ->
+          match part with
+              [d1; d2; d3] ->
+                let conds = Array.get groups d1 in
+                let ifcases = Array.get groups d2 in
+                let elsecases = Array.get groups d3 in
+                List.iter
+                  (fun (cond, cond_flag) ->
+                    List.iter
+                      (fun (ifcase, ifcase_flag) ->
+                        List.iter
+                          (fun (elsecase, elsecase_flag) ->
+                            target := (If0 (cond, ifcase, elsecase), cond_flag lor ifcase_flag lor elsecase_flag) :: !target)
+                          elsecases)
+                      ifcases)
+                  conds
+            | _ -> failwith "partition bug"
+        )
+        (partition 3 (i - 1));
+
+    if List.mem SFold allowed_stmts then
+      List.iter
+        (fun part ->
+          match part with
+              [d1; d2; d3] ->
+                let e0s = Array.get groups d1 in
+                let e1s = Array.get groups d2 in
+                let e2s = Array.get groups d3 in
+                List.iter
+                  (fun (e0, e0_flag) ->
+                    if e0_flag land (1 lsl 30) = 0 then
+                    List.iter
+                      (fun (e1, e1_flag) ->
+                        if e1_flag land (1 lsl 30) = 0 then
+                        List.iter
+                          (fun (e2, e2_flag) ->
+                            if e2_flag land (1 lsl 30) = 0 then
+                            List.iter
+                              (fun left ->
+                                List.iter
+                                  (fun right ->
+                                    if left <> right then
+                                      target := (Fold (e0, e1, left, right, e2), (e0_flag lor e1_flag lor (e2_flag land (lnot ((1 lsr right) lor (1 lsl left)))))):: !target)
+                                  ids)
+                              ids)
+                          e2s)
+                      e1s)
+                  e0s
+            | _ -> failwith "partition bug"
+        )
+        (partition 3 (i - 2));
+
+    if List.length allowed_uns <> 0 then
+      begin
+        let children = Array.get groups (i - 1) in
+        List.iter
+          (fun (child, child_flag) ->
+            List.iter
+              (fun op ->
+                target := (Op1 (op, child), child_flag):: !target)
+              allowed_uns)
+          children
+      end;
+
+    if List.length allowed_bins <> 0 then
+      List.iter
+        (fun part ->
+          match part with
+              [d1; d2] ->
+                let lefts = Array.get groups d1 in
+                let rights = Array.get groups d2 in
+                List.iter
+                  (fun (left, left_flag) ->
+                    List.iter
+                      (fun (right, right_flag) ->
+                        if left <= right then
+                          List.iter
+                            (fun op ->
+                              target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                            allowed_bins)
+                      rights)
+                  lefts
+            | _ -> failwith "partition bug"
+        )
+        (partition 2 (i - 1));
+
+    Array.set groups i !target
+  done;
+
+  Array.iteri
+    (fun i x -> Printf.eprintf "depth=%d before size=%d\n" i (List.length x))
+    groups;
+
+  let merged = ref [] in
+
+  if depth > 5 && List.mem STfold allowed_stmts then
+    List.iter
+      (fun (y, y_flag) ->
+        if y_flag land (lnot 3) = 0 then
+          try
+            (* let _ = Eval.eval y 0L in *)
+            merged := Fold (Input, Zero, 0, 1, y) :: !merged
+          with Not_found ->
+            ())
+      (Array.get groups (depth - 5));
+
+  List.iter
+    (fun (y, y_flag) ->
+      if y_flag land (lnot (1 lsl 30)) = 0 then
+        if y_flag = 0 then
+          try
+            (* let _ = Eval.eval y 0L in *)
+            merged := y :: !merged
+          with Not_found ->
+            ())
+    (Array.get groups (depth - 1));
+  !merged
+;;
+
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   prerr_endline "Generating";
   let if0_in_ops = List.mem SIf0 allowed_stmts in

@@ -6,7 +6,19 @@ open Print;;
 open Type;;
 
 let check_brute id allowed_ops_tuple size challenge count =
+    Printf.printf
+      "%s\n  %s\n  %s\n  original: %s\n"
+      id
+      (format_operator_tuple allowed_ops_tuple)
+      (string_of_int size)
+      challenge;
+    flush_all ();
+
   let answers = Brute.gen allowed_ops_tuple size in
+  Printf.eprintf "size=%d\n" (List.length answers);
+  (* List.iter *)
+  (*   (fun x -> prerr_endline (Print.print x)) *)
+  (*   answers; *)
   let answer = List.nth answers (Random.int (List.length answers)) in
   let initialguess =
     let bitseq = 
@@ -52,38 +64,46 @@ let check_brute id allowed_ops_tuple size challenge count =
         (Array.init 0 (*(256 - (List.length bitseq) - (List.length fixedseq))*)
            (fun _ -> rand64 ())) in
     bitseq @ fixedseq @ randseq in
-  let outputs = List.map (fun x -> eval answer x) initialguess in
+  let outputs =
+    List.map
+      (fun x ->
+        eval answer x
+      )
+      initialguess
+  in
 
-  let uns, bins, stmts = allowed_ops_tuple in
-  Printf.printf
-    "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
-    (Print.print answer)
-    size
-    (String.concat " " (List.map unop_to_string uns))
-    (String.concat " " (List.map binop_to_string bins))
-    (String.concat " " (List.map statement_to_string stmts))
-    (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
-    (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs));
+  (* let uns, bins, stmts = allowed_ops_tuple in *)
+  (* Printf.printf *)
+  (*   "%s\n%d\n%s\n%s\n%s\n%s\n%s\n" *)
+  (*   (Print.print answer) *)
+  (*   size *)
+  (*   (String.concat " " (List.map unop_to_string uns)) *)
+  (*   (String.concat " " (List.map binop_to_string bins)) *)
+  (*   (String.concat " " (List.map statement_to_string stmts)) *)
+  (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess)) *)
+  (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs)); *)
 
   let guess_function x c =
-    (* Printf.printf *)
-    (*   "%s\n  %s\n  %s\n  original: %s\n  guess:    %s\n  answer:   %s\n" *)
-    (*   id *)
-    (*   (format_operator_tuple allowed_ops_tuple) *)
-    (*   (string_of_int size) *)
-    (*   challenge *)
-    (*   (Print.print x) *)
-    (*   (Print.print answer); *)
+    Printf.printf
+      "%s\n  %s\n  %s\n  original: %s\n  guess:    %s\n  answer:   %s\n"
+      id
+      (format_operator_tuple allowed_ops_tuple)
+      (string_of_int size)
+      challenge
+      (Print.print x)
+      (Print.print answer);
+    flush_all ();
     count := !count + c;
     Feedback.Success
   in
-  let alllist = Brute.gen allowed_ops_tuple size in
+  let alllist = Brute.gen allowed_ops_tuple (size - 4) in
   GuessCaller.guess_call
     (List.combine initialguess outputs)
     guess_function
     allowed_ops_tuple
     size
     alllist
+;;
 
 let rec check_by_train_list () =
   let train_string = read_line () in
@@ -115,13 +135,14 @@ let check_by_problems () =
 
   List.iter
     (fun (id, size, allowed_ops_tuple, solved, time_over) ->
-      if size = 10 then
+      if size < 12 then
         begin
-          Printf.eprintf "Count: %d" !count;
-          failwith "stop"
+          ();
+          (* Printf.eprintf "Count: %d" !count; *)
+          (* failwith "stop" *)
         end
       else
-      check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)) count)
+        check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)) count)
     sorted_problems;
 ;;
 
