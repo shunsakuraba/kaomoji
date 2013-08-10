@@ -93,7 +93,7 @@ let check_brute id allowed_ops_tuple size challenge count =
   in
 
   let guess_function x c =
-    Printf.printf
+    Printf.eprintf
       "  guess:    %s\n"
       (Print.print x);
     flush_all ();
