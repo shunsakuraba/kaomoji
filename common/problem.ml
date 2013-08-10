@@ -7,7 +7,8 @@ let parse_problem_json j =
     let size = ref 0 in
     let operators = ref ([], [], []) in
     let solved = ref false in
-    let time_left = ref "" in
+    (* let time_left = ref 0.0 in *)
+    let time_over = ref false in
 
     let parse_kv = function
       | "id", `String(s) ->
@@ -18,6 +19,8 @@ let parse_problem_json j =
         operators := parse_operator_string_list l
       | "solved", `Bool(b) ->
         solved := b
+      | "timeLeft", `Int(0) ->
+	time_over := true
       | "timeLeft", _ ->
         ()
       | key, _ ->
@@ -26,7 +29,7 @@ let parse_problem_json j =
     in
 
     List.iter parse_kv kv_list;
-    !id, !size, !operators, !solved, !time_left
+    !id, !size, !operators, !solved, !time_over
   in
 
   match j with
@@ -43,7 +46,7 @@ let parse_problems_json = function
     prerr_endline "Malformed problems json";
     raise Parse_error
 
-let format_problem (id, size, operators, solved, time_left) index =
+let format_problem (id, size, operators, solved, time_over) index =
   Printf.sprintf
     "%4d %s: %2d %s %s %s"
     index
@@ -51,7 +54,7 @@ let format_problem (id, size, operators, solved, time_left) index =
     size
     (format_operator_tuple operators)
     (if solved then "T" else "F")
-    time_left
+    (if time_over then "Over" else "Ready")
 
 let fetch_problems () =
   prerr_endline "Fetching problems";
@@ -76,9 +79,11 @@ let fetch_good_problems size_limit ops_limit =
   let good_problems =
     List.find_all
       (fun x ->
-        let id, size, (unops, binops, statements), solved, time_left = x in
+        let id, size, (unops, binops, statements), solved, time_over = x in
         if solved then
           false
+	else if time_over then
+	  false
         else if size <> size_limit then
           false
         else
