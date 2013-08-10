@@ -31,10 +31,7 @@ print >> sys.stderr, "Initializing with size=%d" % size
 
 INPUT_PER_ORACLE = 1
 EXTENDED_INPUT = INPUT_PER_ORACLE + 2 # 2 is "0" and "1"
-MAXCMP = size - 1 - (len(unops_use) + len(binops_use) * 2 + len(triops_use) * 3 - 1)
 OP_KINDS = len(unops_use) + len(binops_use) + len(triops_use)
-LIB_LINES = MAXCMP * OP_KINDS
-EXTENDED_LINES = EXTENDED_INPUT + LIB_LINES
 
 #NORACLE = int(sys.stdin.next().striip())
 
@@ -52,13 +49,20 @@ S = Solver()
 
 lineops = []
 ninputs = []
-for opl in range(MAXCMP):
-    for (opuse, arity) in [(unops_use, 1),
-                           (binops_use, 2),
-                           (triops_use, 3)]:
-        for op in opuse:
+size_by_op = {}
+for (opuse, arity) in [(unops_use, 1),
+                       (binops_use, 2),
+                       (triops_use, 3)]:
+    for op in opuse:
+        remain_size = size - 1 - len(unops_use) * 1 - len(binops_use) * 2 - len(triops_use) * 3
+        nopl = (remain_size + arity) / arity
+        size_by_op[op] = nopl
+        for opl in range(nopl):
             lineops.append(op)
             ninputs.append(arity)
+
+LIB_LINES = len(ninputs)
+EXTENDED_LINES = EXTENDED_INPUT + LIB_LINES
 
 LI = [[Int("LI_%i_%i" % (i, j)) for j in range(ninputs[i])] for i in range(LIB_LINES)]
 col_li = [And(0 <= LI[i][j],
@@ -109,11 +113,11 @@ while True:
     ORACLES.append((oin, oout))
 
     col_lib = []
-    for opl in range(MAXCMP):
-        for (opuse, arity) in [(unops_use, 1),
-                               (binops_use, 2),
-                               (triops_use, 3)]:
-            for op in opuse:
+    for (opuse, arity) in [(unops_use, 1),
+                           (binops_use, 2),
+                           (triops_use, 3)]:
+        for op in opuse:
+            for opl in range(size_by_op[op]):
                 Icur = []
                 suffix = "_%i_%s_%i" % (nin, op, opl)
                 # print suffix
