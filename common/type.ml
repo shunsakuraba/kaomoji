@@ -1,4 +1,4 @@
-type expr = 
+type expr =
     Zero
   | One
   | Ident of id
@@ -8,13 +8,13 @@ type expr =
   | Op1 of unop * expr
   | Op2 of binop * expr * expr
 and id = int
-and unop = 
+and unop =
     Not
   | Shl1
   | Shr1
   | Shr4
   | Shr16
-and binop = 
+and binop =
     And
   | Or
   | Xor
