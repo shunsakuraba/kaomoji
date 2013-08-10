@@ -21,7 +21,7 @@ let parse_problem_json j =
       | "timeLeft", _ ->
         ()
       | key, _ ->
-        print_endline ("Failed to parse " ^ key);
+        prerr_endline ("Failed to parse " ^ key);
         raise Parse_error
     in
 
@@ -33,14 +33,14 @@ let parse_problem_json j =
     | `Assoc(kv_list) ->
       scan_kv_list kv_list
     | _ ->
-      print_endline "Malformed problem json";
+      prerr_endline "Malformed problem json";
       raise Parse_error
 
 let parse_problems_json = function
   | `List(l) ->
     List.map parse_problem_json l
   | _ ->
-    print_endline "Malformed problems json";
+    prerr_endline "Malformed problems json";
     raise Parse_error
 
 let format_problem (id, size, operators, solved, time_left) index =
@@ -54,7 +54,7 @@ let format_problem (id, size, operators, solved, time_left) index =
     time_left
 
 let fetch_problems () =
-  print_endline "Fetching problems";
+  prerr_endline "Fetching problems";
   let problem_url = api_site ^ "/myproblems?auth=" ^ auth in
   Http_user_agent.get problem_url
 
@@ -87,6 +87,6 @@ let fetch_good_problems size_limit ops_limit =
   good_problems
 
 let read_local_problems () =
-  print_endline "Reading local problem";
+  prerr_endline "Reading local problem";
   let problem_string = read_line () in
   Yojson.Safe.from_string problem_string
