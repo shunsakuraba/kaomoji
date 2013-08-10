@@ -97,6 +97,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
     "Generating(gen2) size=%d %s\n"
     depth
     (Api.format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
+  flush_all ();
 
   let start_time = Sys.time() in
 
@@ -228,6 +229,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Array.iteri
     (fun i x -> Printf.eprintf "  depth=%d size=%d\n" i (List.length x))
     groups;
+  flush_all ();
 
   let merged = ref [] in
 
@@ -252,6 +254,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
     "Generated(gen2) %fs size=%d\n"
     (end_time -. start_time)
     (List.length !merged);
+  flush_all ();
 
   !merged
 
@@ -260,6 +263,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
     "Generating(gen) size=%d %s\n"
     depth
     (Api.format_operator_tuple (allowed_un, allowed_bin, allowed_stmts));
+  flush_all ();
 
   let start_time = Sys.time() in
 
