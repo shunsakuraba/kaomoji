@@ -7,7 +7,7 @@ let parse_problem_json j =
     let size = ref 0 in
     let operators = ref ([], [], []) in
     let solved = ref false in
-    let time_left = ref "" in
+    let time_left = ref 0.0 in
 
     let parse_kv = function
       | "id", `String(s) ->
@@ -18,8 +18,10 @@ let parse_problem_json j =
         operators := parse_operator_string_list l
       | "solved", `Bool(b) ->
         solved := b
-      | "timeLeft", _ ->
-        ()
+      | "timeLeft", `Int(i) ->
+        time_left := float_of_int i
+      | "timeLeft", `Float(f) ->
+        time_left := f
       | key, _ ->
         prerr_endline ("Failed to parse " ^ key);
         raise Parse_error
@@ -45,7 +47,7 @@ let parse_problems_json = function
 
 let format_problem (id, size, operators, solved, time_left) index =
   Printf.sprintf
-    "%4d %s: %2d %s %s %s"
+    "%4d %s: %2d %s %s %f"
     index
     id
     size
