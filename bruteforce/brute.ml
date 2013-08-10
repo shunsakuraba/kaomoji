@@ -236,7 +236,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i (List.filter (fun (x, y) -> Simplifier.simp x = x) !target);
+    Array.set groups i !target;
     Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
     flush_all ()
   done;
@@ -441,6 +441,7 @@ let get_candidates core_problem =
   let simplified = List.map Simplifier.simplify alllist_initial in
   let () = prerr_endline "Simplification finished." in
   let alllist = list_to_unique_list simplified in
+(*  let alllist = alllist_initial in *)
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
   let start_time = Sys.time() in
