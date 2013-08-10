@@ -21,7 +21,7 @@ let parse_problem_json j =
     in
 
     List.iter parse_kv kv_list;
-    (!id, !size, !operators, !solved, !time_left)
+    !id, !size, !operators, !solved, !time_left
   in
 
   match j with

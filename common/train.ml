@@ -2,43 +2,30 @@ open Api
 open Type
 
 let parse_train_string s =
-  let scan_train_kv_list kv_list =
+  let scan_kv_list kv_list =
     let id = ref "" in
     let size = ref 0 in
     let operators = ref ([], [], []) in
     let challenge = ref "" in
 
-    let parse_kv (key, value) =
-      if key = "id" then
-        match value with
-            `String(s) -> id := s
-          | _ ->
-            raise Parse_error
-      else if key = "size" then
-        match value with
-            `Int(i) -> size := i
-          | _ ->
-            raise Parse_error
-      else if key = "operators" then
-        match value with
-            `List(l) -> operators := parse_operator_string_list l
-          | _ ->
-            raise Parse_error
-      else if key = "challenge" then
-        match value with
-            `String(s) -> challenge := s
-          | _ ->
-            raise Parse_error
-      else
-        raise Parse_error in
+    let parse_kv = function
+      | "id", `String(s) -> id := s
+      | "size", `Int(i) -> size := i
+      | "operators", `List(l) -> operators := parse_operator_string_list l
+      | "challenge", `String(s) -> challenge := s
+      | key, _ ->
+        print_endline ("Failed to parse " ^ key);
+        raise Parse_error
+    in
 
     List.iter parse_kv kv_list;
-    (!id, !size, !operators, !challenge) in
+    !id, !size, !operators, !challenge
+  in
 
   let train_json = Yojson.Safe.from_string s in
   match train_json with
     | `Assoc(kv_list) ->
-      scan_train_kv_list kv_list
+      scan_kv_list kv_list
     | _ ->
       raise Parse_error
 
@@ -72,3 +59,8 @@ let fetch_train size operators =
     end
   else
     call # response_body # value
+
+let read_train_from_file path =
+  let in_channel = open_in path in
+  let train_string = input_line in_channel in
+  parse_train_string train_string
