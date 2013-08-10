@@ -30,11 +30,48 @@ let main =
     let bitseq = 
       Array.to_list
 	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    (* let fixedseq = *)
+    (*   [0x0000000000000000L; *)
+    (*    0x0000000000000001L; *)
+    (*    0x0000000000000002L; *)
+    (*    0x0000000000000003L; *)
+    (*    0x0000000000000004L; *)
+    (*    0x0000000000000005L; *)
+    (*    0x0000000000000006L; *)
+    (*    0x0000000000000007L; *)
+    (*    0x0000000000000008L; *)
+    (*    0x0000000000000009L; *)
+    (*    0x000000000000000aL; *)
+    (*    0x000000000000000bL; *)
+    (*    0x00000000FFFFFFFFL; *)
+    (*    0xFFFFFFFF00000000L; *)
+    (*    0x0000FFFF0000FFFFL; *)
+    (*    0xFFFF0000FFFF0000L; *)
+    (*    0x00FF00FF00FF00FFL; *)
+    (*    0xFF00FF00FF00FF00L; *)
+    (*    0x0F0F0F0F0F0F0F0FL; *)
+    (*    0xF0F0F0F0F0F0F0F0L; *)
+    (*    0x3333333333333333L; *)
+    (*    0xCCCCCCCCCCCCCCCCL; *)
+    (*    0x5555555555555555L; *)
+    (*    0xAAAAAAAAAAAAAAAAL; *)
+    (*    0x0000FFFFFFFF0000L; *)
+    (*    0xFFFF00000000FFFFL; *)
+    (*    0xFF0000FFFF0000FFL; *)
+    (*    0x00FFFF0000FFFF00L; *)
+    (*    0xF00FF00FF00FF00FL; *)
+    (*    0x0FF00FF00FF00FF0L; *)
+    (*    0xDEADBEEFDEADBEEFL; *)
+    (*    0xFFFFFFFFFFFFFFFFL *)
+    (*   ] in *)
     let randseq = 
       Array.to_list
-	(Array.init 192
+	(Array.init
+           192
+           (* (256 - (List.length bitseq) - (List.length fixedseq)) *)
 	   (fun _ -> rand64 ())) in
     bitseq @ randseq in
+    (* bitseq @ fixedseq @ randseq in *)
   let alllist = Brute.get_candidates core_problem in
   let _ = prerr_endline "Requesting initial guess..." in
   let start_time = Sys.time() in
