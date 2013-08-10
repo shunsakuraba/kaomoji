@@ -211,7 +211,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                           List.iter
                             (fun op ->
                               if (not (left = Zero || right = Zero)) &&
-                                (not ((op <> Plus || List.mem Shl1 allowed_uns) && left = right)) &&
+                                (not ((op <> Plus) && left = right)) &&
                                 (not (op <> Plus &&
                                     ((left = Zero || left = One) &&
                                         (right = Zero || right = One))))
