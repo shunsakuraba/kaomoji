@@ -64,6 +64,15 @@ let needed_depth bits =
 
 let is_good_binop_cand cand =
   match cand with
+  | Op2 (Xor, One, One) -> false (* = Xor Zero Zero *)
+  | Op2 (Xor, Input, Input) -> false (* = Xor Zero Zero *)
+  | Op2 (Xor, Ident (a), Ident (b)) -> a > b (* = Xor Zero Zero *)
+  | Op2 (And, Op2 (And, _, _), _) -> false
+  | Op2 (And, _, Op2 (And, _, _)) -> true
+  | Op2 (Or, Op2 (Or, _, _), _) -> false
+  | Op2 (Or, _, Op2 (Or, _, _)) -> true
+  | Op2 (Plus, Op2 (Plus, _, _), _) -> false
+  | Op2 (Plus, _, Op2 (Plus, _, _)) -> true
   | Op2 (_, a, b) -> (a >= b)
   | _ -> true
 
@@ -72,6 +81,9 @@ let is_good_unop_cand cand =
   | Op1 (Shr1, Op1 (Shr4, _)) -> false
   | Op1 (Shr4, Op1 (Shr16, _)) -> false
   | Op1 (Shr1, Op1 (Shr16, _)) -> false
+  | Op1 (Shr1, One) -> false  (* = Shr1 Zero *)
+  | Op1 (Shr4, One) -> false  (* = Shr4 Zero *)
+  | Op1 (Shr16, One) -> false  (* = Shr16 Zero *)
   | _ -> true
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
