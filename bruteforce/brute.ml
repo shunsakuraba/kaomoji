@@ -128,15 +128,16 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                 let elsecases = Array.get groups d3 in
                 List.iter
                   (fun (cond, cond_flag) ->
-                    List.iter
-                      (fun (ifcase, ifcase_flag) ->
-                        List.iter
-                          (fun (elsecase, elsecase_flag) ->
-                            let new_node = If0 (cond, ifcase, elsecase) in
-                            let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                            target := (new_node, new_flag) :: !target)
-                          elsecases)
-                      ifcases)
+                    if cond <> One then
+                      List.iter
+                        (fun (ifcase, ifcase_flag) ->
+                          List.iter
+                            (fun (elsecase, elsecase_flag) ->
+                              let new_node = If0 (cond, ifcase, elsecase) in
+                              let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
+                              target := (new_node, new_flag) :: !target)
+                            elsecases)
+                        ifcases)
                   conds
             | _ -> failwith "partition bug"
         )
@@ -206,7 +207,13 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                         if left <= right then
                           List.iter
                             (fun op ->
-                              target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                              if (not (left = Zero || right = Zero)) &&
+                                (not (op <> Plus && left = right)) &&
+                                (not (op <> Plus &&
+                                    ((left = Zero || left = One) &&
+                                        (right = Zero || right = One))))
+                              then
+                                target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
                             allowed_bins)
                       rights)
                   lefts
@@ -224,27 +231,21 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let merged = ref [] in
 
-  if depth > 5 && List.mem STfold allowed_stmts then
+  for j = 1 to depth do
+    if j > 5 && List.mem STfold allowed_stmts then
+      List.iter
+        (fun (y, y_flag) ->
+          if y_flag land (lnot 3) = 0 then
+            merged := Fold (Input, Zero, 0, 1, y) :: !merged)
+        (Array.get groups (j - 5));
+
     List.iter
       (fun (y, y_flag) ->
-        if y_flag land (lnot 3) = 0 then
-          try
-            (* let _ = Eval.eval y 0L in *)
-            merged := Fold (Input, Zero, 0, 1, y) :: !merged
-          with Not_found ->
-            ())
-      (Array.get groups (depth - 5));
-
-  List.iter
-    (fun (y, y_flag) ->
-      if y_flag land (lnot fold_used_bit) = 0 then
-        if y_flag = 0 then
-          try
-            (* let _ = Eval.eval y 0L in *)
-            merged := y :: !merged
-          with Not_found ->
-            ())
-    (Array.get groups (depth - 1));
+        if y_flag land (lnot fold_used_bit) = 0 then
+          if y_flag = 0 then
+            merged := y :: !merged)
+      (Array.get groups (j - 1))
+  done;
 
   let end_time = Sys.time() in
   Printf.eprintf
