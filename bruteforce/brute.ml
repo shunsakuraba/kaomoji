@@ -129,9 +129,11 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                 let elsecases = Array.get groups d3 in
                 List.iter
                   (fun (cond, cond_flag) ->
-                    if cond <> One then
+                    if cond <> Zero && cond <> One then
                       List.iter
                         (fun (ifcase, ifcase_flag) ->
+                          if (not ((cond = Ident(0) && (ifcase_flag land 1) = 1))) &&
+                            (not ((cond = Ident(1) && (ifcase_flag land 2) = 2))) then
                           List.iter
                             (fun (elsecase, elsecase_flag) ->
                               let new_node = If0 (cond, ifcase, elsecase) in
@@ -209,7 +211,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                           List.iter
                             (fun op ->
                               if (not (left = Zero || right = Zero)) &&
-                                (not (op <> Plus && left = right)) &&
+                                (not ((op <> Plus || List.mem Shl1 allowed_uns) && left = right)) &&
                                 (not (op <> Plus &&
                                     ((left = Zero || left = One) &&
                                         (right = Zero || right = One))))
