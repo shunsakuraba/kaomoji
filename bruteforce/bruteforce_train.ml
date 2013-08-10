@@ -52,7 +52,7 @@ let main =
       failwith "Eval returned error"
     end
   else
-    let rec guess_function x =
+    let rec guess_function x c =
       let guess_submit () = 
 	let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
 	print_endline message;
@@ -69,7 +69,7 @@ let main =
 	  | st -> failwith "Unknown status."
       in
       try guess_submit ()
-      with Again -> (Unix.sleep 20; guess_function x)
+      with Again -> (Unix.sleep 20; guess_function x c)
     in
     let _ = GuessCaller.guess_call (List.combine initialguess outputs)
       guess_function

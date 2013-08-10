@@ -18,14 +18,15 @@ let guess_call initial feedback allowed depth alllist =
           initial)
       alllist
   in
-  let () = Printf.eprintf "After filtering %d elements remains\n" (List.length initiallist) in
+  let count = List.length initiallist in
+  let () = Printf.eprintf "After filtering %d elements remains\n" count in
   let curlist = ref initiallist in
   try
     while true do
       match !curlist with
 	  [] -> failwith "No more candidates"
 	| trial :: _ ->
-	  match feedback trial with
+	  match feedback trial count with
 	      Success -> 
 		raise Exit
 	    (* feedback automatically submits answer, thus no more thing to do *)
