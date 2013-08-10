@@ -4,7 +4,7 @@ let eval expr input =
   let lookup env id =
     List.assoc id env
   in
-  let rec eval input env expr =
+  let rec eval env expr =
     let open Int64 in
 	match expr with
 	    Zero -> zero
@@ -12,23 +12,23 @@ let eval expr input =
 	  | Ident id -> lookup env id
 	  | Input -> input
 	  | If0 (cond, ifc, elsec) ->
-            let cond_value = eval input env cond in
+            let cond_value = eval env cond in
 	    if cond_value = zero
-	    then eval input env ifc
-	    else eval input env elsec
+	    then eval env ifc
+	    else eval env elsec
 	  | Fold (ein, estart, byteid, curid, e2) ->
-	    let xin = eval input env ein in
-	    let es = eval input env estart in
+	    let xin = eval env ein in
+	    let es = eval env estart in
 	    let now = ref es in
 	    for i = 0 to 7 do
 	      let cur = logand (shift_right_logical xin (i * 8)) 0xffL in
               let new_env = (byteid, cur)::(curid, !now)::env in
-	      let newnow = eval input new_env e2 in
+	      let newnow = eval new_env e2 in
 	      now := newnow
 	    done;
 	    !now
 	  | Op1 (op, e) ->
-	    let v = eval input env e in
+	    let v = eval env e in
 	    begin
 	      match op with
 		  Not -> lognot v
@@ -38,8 +38,8 @@ let eval expr input =
 		| Shr16 -> shift_right_logical v 16
 	    end
 	  | Op2 (op, e1, e2) ->
-	    let v1 = eval input env e1 in
-	    let v2 = eval input env e2 in
+	    let v1 = eval env e1 in
+	    let v2 = eval env e2 in
 	    begin
 	      match op with
 		  And -> logand v1 v2
@@ -49,4 +49,4 @@ let eval expr input =
 	    end
   in
   let inienv = [] in
-  eval input inienv expr
+  eval inienv expr
