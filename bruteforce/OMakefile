@@ -163,12 +163,15 @@ OCAMLPACKS[] =
   unix
 
 
-FILES[] =
+BRUTE_FILES[] =
    bruteforce_train
    brute
    guessCaller
 
-PROGRAM = brute
+TEST_BRUTE_FILES[] =
+   brute
+   test_brute
+   guessCaller
 
 # FILES[] =
 #    file1
@@ -184,7 +187,7 @@ PROGRAM = brute
 
 OCAML_LIBS += ../common/common 
 
-.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES)) $(OCamlLibrary libbrute, brute guessCaller)
+.DEFAULT: $(OCamlProgram brute, $(BRUTE_FILES)) $(OCamlLibrary libbrute, brute guessCaller) $(OCamlProgram test_brute, $(TEST_BRUTE_FILES)) 
 
 clean:
 	rm -f *~ *.opt *.cmi *.cmx *.o *.omc *.a *.cmxa
