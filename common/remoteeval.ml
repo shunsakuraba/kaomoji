@@ -63,6 +63,7 @@ let parse_eval_result_string s =
 ;;
 
 let eval_id id arguments =
+  prerr_endline "Evaluating by id";
   let url = Api.api_site ^ "/eval?auth=" ^ Api.auth in
   let call =
     new Http_client.post_raw
@@ -75,12 +76,12 @@ let eval_id id arguments =
   pipeline # run();
   let status = call # response_status_text in
   let result = call # response_body # value in
-  print_endline status;
-  print_endline result;
+  prerr_endline ("Status code: " ^ status);
+  prerr_endline ("Body: " ^ result);
   parse_eval_result_string result
 
 let eval_program program_string arguments =
-  print_endline "Evaluating";
+  prerr_endline "Evaluating by program";
   let url = Api.api_site ^ "/eval?auth=" ^ Api.auth in
   let call =
     new Http_client.post_raw
@@ -88,13 +89,14 @@ let eval_program program_string arguments =
       (Yojson.Safe.to_string
          (`Assoc([("program", `String(program_string));
                   ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
+  prerr_endline "Running guess RPC";
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
   let status = call # response_status_text in
   let result = call # response_body # value in
-  print_endline status;
-  print_endline result;
+  prerr_endline ("Status code: " ^ status);
+  prerr_endline ("Body: " ^ result);
   parse_eval_result_string result
 ;;
 

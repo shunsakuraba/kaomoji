@@ -103,7 +103,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let fold_used_bit = 1 lsl 30 in
 
-  let groups = Array.init (depth) (fun _ -> []) in
+  let build = if List.mem STfold allowed_stmts then depth - 5 else depth - 1 in
+
+  let groups = Array.init (build + 1) (fun _ -> []) in
 
   let num_ids =
     if List.mem STfold allowed_stmts then 2
@@ -116,7 +118,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
     1
     ((Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))));
 
-  for i = 2 to depth - 1 do
+  for i = 2 to build do
     let target = ref (Array.get groups i) in
 
     if List.mem SIf0 allowed_stmts then
@@ -242,7 +244,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let merged = ref [] in
 
-  for j = 1 to depth do
+  for j = 1 to build + 1 do
     if j > 5 && List.mem STfold allowed_stmts then
       List.iter
         (fun (y, y_flag) ->
