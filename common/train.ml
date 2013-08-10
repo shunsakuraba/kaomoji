@@ -41,13 +41,28 @@ let format_train (id, size, operators, challenge) index =
 let fetch_train size operators =
   print_endline "Fetching trains";
   let url = api_site ^ "/train?auth=" ^ auth in
+  let json =
+    if operators = "-fold" then
+      Yojson.Safe.to_string
+        (`Assoc(
+          [("size", `Int(size));
+           ("operators", `List([]))]))
+    else if operators = "" then
+      Yojson.Safe.to_string
+	(`Assoc(
+          [("size", `Int(size))]))
+    else if operators = "bonus" then
+      Yojson.Safe.to_string
+	(`Assoc(
+          [("size", `Int(42))]))
+    else
+      Yojson.Safe.to_string
+        (`Assoc(
+          [("size", `Int(size));
+           ("operators", `List([`String(operators)]))])) in
+  let _ = print_endline json in
   let call =
-    new Http_client.post_raw
-      url
-      (Yojson.Safe.to_string
-         (`Assoc(
-           [("size", `Int(size));
-            ("operators", `String(operators))]))) in
+    new Http_client.post_raw url json in
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();

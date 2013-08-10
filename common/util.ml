@@ -13,13 +13,9 @@ let is_match_ops_limit statements ops_limit =
     | "fold" ->
       List.mem SFold statements
     | "-fold" ->
-      not (List.mem SFold statements)
-    | "bonus" ->
       not (List.mem SFold statements) &&
       not (List.mem STfold statements)
     | "tfold" ->
       List.mem STfold statements
-    | "-tfold" ->
-      not (List.mem STfold statements)
     | _ ->
       failwith "Unsupported ops_limit"
