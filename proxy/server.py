@@ -100,7 +100,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
   pass
 
 if __name__ == '__main__':
-  server = ThreadedHTTPServer(('localhost', 8080), Handler)
+  server = ThreadedHTTPServer(('', 80), Handler)
 
   global_dic['last_request'] = now()
   global_dic['priority_request_count'] = 0
