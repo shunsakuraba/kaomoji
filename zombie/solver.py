@@ -30,7 +30,7 @@ oracle_inputs = [long(x, 0) for x in sys.stdin.next().split()]
 oracle_outputs = [long(x, 0) for x in sys.stdin.next().split()]
 
 INPUT_PER_ORACLE = 1
-MAXCMP = size - 1 - (len(unops_use) + len(binops_use) + len(triops_use) - 1)
+MAXCMP = size - 1 - (len(unops_use) + len(binops_use) * 2 + len(triops_use) * 3 - 1)
 NORACLE = len(oracle_inputs)
 OP_KINDS = 2 + len(unops_use) + len(binops_use) + len(triops_use)
 LIB_LINES = MAXCMP * OP_KINDS
