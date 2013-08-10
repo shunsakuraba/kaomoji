@@ -3,13 +3,14 @@
 from z3 import *
 
 import sys
+import threading
 
 if len(sys.argv) >= 2:
     cut_oracle = int(sys.argv[1])
 else:
     cut_oracle = 9999
 
-#nuops = '0 1'.split()
+nuops = '0 1'.split()
 unops = 'not shl1 shr1 shr4 shr16'.split()
 binops = 'and or xor plus'.split()
 triops = 'if0'.split()
@@ -23,6 +24,9 @@ ops = [(op, int(n)) for [op, n] in ops]
 size_by_op = {}
 for (op, n) in ops:
     size_by_op[op] = n
+size_by_op['0'] = 1
+size_by_op['1'] = 1
+print >> sys.stderr, size_by_op
 
 #if "tfold" in triops_use or "fold" in triops_use:
 #    print >> sys.stderr, "Does not support fold / tfold yet"
@@ -33,9 +37,9 @@ print >> sys.stderr, "Initializing with size=%d" % size
 # sys.stdout.flush()
 
 INPUT_PER_ORACLE = 1
-EXTENDED_INPUT = INPUT_PER_ORACLE + 2 # 2 is "0" and "1"
-ZERO = INPUT_PER_ORACLE
-ONE = INPUT_PER_ORACLE + 1
+EXTENDED_INPUT = INPUT_PER_ORACLE
+ZEROLINE = EXTENDED_INPUT
+ONELINE = EXTENDED_INPUT + 1
 
 #NORACLE = int(sys.stdin.next().striip())
 
@@ -53,7 +57,8 @@ S = Solver()
 
 lineops = []
 ninputs = []
-for (opuse, arity) in [(unops, 1),
+for (opuse, arity) in [(nuops, 0),
+                       (unops, 1),
                        (binops, 2),
                        (triops, 3)]:
     for op in opuse:
@@ -71,35 +76,63 @@ col_li = [And(0 <= LI[i][j],
           for i in range(LIB_LINES) for j in range(ninputs[i])]
 S.add(col_li)
 
-# Optimizations
-for i in range(LIB_LINES):
-    if lineops[i] == "if0":
-        # if0 (const) e e
-        S.add(LI[i][0] != ZERO)
-        S.add(LI[i][0] != ONE)
-        S.add(LI[i][1] != LI[i][2])
-    elif lineops[i] in ["shr1", "shr4", "shr16"]:
-        # equivalent to 0
-        S.add(LI[i][0] != ZERO)
-        S.add(LI[i][0] != ONE)
-    elif lineops[i] == "shl1":
-        # equivalent to 0
-        S.add(LI[i][0] != ZERO)
-    elif lineops[i] in ["and", "or", "xor", "plus"]:
-        # equivalent to 0 or copy value
-        S.add(LI[i][0] != ZERO)
-        S.add(LI[i][1] != ZERO)
-        # symmetry
-        if lineops[i] in ["and", "or", "xor"]:
-            S.add(LI[i][0] < LI[i][1])
-        else:
-            S.add(LI[i][0] <= LI[i][1])
-
 LO = [Int("LO_%i" % i) for i in range(LIB_LINES)]
 col_lo = [And(EXTENDED_INPUT <= LO[i],
               LO[i] < EXTENDED_LINES)
           for i in range(LIB_LINES)]
 S.add(col_lo)
+S.add(LO[0] == ZEROLINE) # 0
+S.add(LO[1] == ONELINE) # 1
+
+# Optimizations
+for i in range(LIB_LINES):
+    if lineops[i] == "if0":
+        # if0 (const) e e
+        S.add(LI[i][0] != ZEROLINE)
+        S.add(LI[i][0] != ONELINE)
+        S.add(LI[i][1] != LI[i][2])
+        # no op reuse => strict orderling enabled
+        S.add(Implies(LI[i][0] > ONELINE, And(LI[i][0] < LI[i][1],
+                                              LI[i][0] < LI[i][2])))
+        S.add(Implies(LI[i][1] > ONELINE, LI[i][1] < LI[i][2]))
+        S.add(Not(And(LI[i][0] == 0, # input
+                      LI[i][1] == 0, # input
+                      LI[i][2] == ZEROLINE)))
+    elif lineops[i] in ["shr1", "shr4", "shr16"]:
+        # equivalent to 0
+        S.add(LI[i][0] != ZEROLINE)
+        S.add(LI[i][0] != ONELINE)
+
+        for j in range(LIB_LINES):
+            if ((lineops[i], lineops[j]) in
+                [("shr1", "shr4"),
+                 ("shr1", "shr16"),
+                 ("shr4", "shr16")]):
+                S.add(LI[i][0] != LO[j]) # (shr1 (shr4 ..)) is eqiv. to (shr4 (shr1 ..))
+    elif lineops[i] == "shl1":
+        # equivalent to 0
+        S.add(LI[i][0] != ZEROLINE)
+
+    elif lineops[i] in ["and", "or", "xor", "plus"]:
+        # equivalent to 0 or copy value
+        S.add(LI[i][0] != ZEROLINE)
+        S.add(LI[i][1] != ZEROLINE)
+
+        # break symmetry
+        if lineops[i] in ["and", "or", "xor"]:
+            S.add(LI[i][0] < LI[i][1])
+        else:
+            S.add(LI[i][0] <= LI[i][1])
+            S.add(Implies(LI[i][0] > ONELINE, 
+                          LI[i][0] < LI[i][1]))
+
+for i in range(LIB_LINES):
+    for j in range(i + 1, LIB_LINES):
+        if lineops[i] == lineops[j]:
+            S.add(LO[i] < LO[j])
+            if lineops[i] == "not":
+                S.add(LI[i][0] != LO[j])
+                S.add(LI[j][0] != LO[i])
 
 col_cons = [ Distinct(LO) ]
 S.add(col_cons)
@@ -114,7 +147,9 @@ for i in range(LIB_LINES):
             for l in range(ninputs[k]):
                 if (i, j) == (k, l):
                     continue
-                col_noreuse.append(Implies(LI[i][j] >= EXTENDED_INPUT,
+                col_noreuse.append(Implies(And(LI[i][j] >= EXTENDED_INPUT,
+                                               LI[i][j] != ZEROLINE,
+                                               LI[i][j] != ONELINE),
                                            LI[i][j] != LI[k][l]))
 S.add(col_noreuse)
 
@@ -144,7 +179,8 @@ while True:
         ORACLES.append((oin, oout))
 
         col_lib = []
-        for (opuse, arity) in [(unops, 1),
+        for (opuse, arity) in [(nuops, 0),
+                               (unops, 1),
                                (binops, 2),
                                (triops, 3)]:
             for op in opuse:
@@ -155,7 +191,11 @@ while True:
                     for a in range(arity):
                         Icur.append(BitVec("I%s_%i" % (suffix, a), 64))
                     Ocur = BitVec("O%s" % suffix, 64)
-                    if op == 'not':
+                    if op == '0':
+                        constr = (Ocur == BitVecVal(0, 64))
+                    elif op == '1':
+                        constr = (Ocur == BitVecVal(1, 64))
+                    elif op == 'not':
                         constr = (Ocur == ~(Icur[0]))
                     elif op == 'shl1':
                         constr = (Ocur == Icur[0] << 1)
@@ -197,13 +237,6 @@ while True:
                                             I[nin][i][j] == BitVecVal(ORACLES[nin][IN + inp], 64)))
 
         for i in range(LIB_LINES):
-            for j in range(ninputs[i]):
-                col_conn.append(Implies(LI[i][j] == INPUT_PER_ORACLE + 0,
-                                        I[nin][i][j] == BitVecVal(0, 64)))
-                col_conn.append(Implies(LI[i][j] == INPUT_PER_ORACLE + 1,
-                                        I[nin][i][j] == BitVecVal(1, 64)))
-
-        for i in range(LIB_LINES):
             col_conn.append(Implies(LO[i] == (EXTENDED_LINES - 1),
                                     O[nin][i] == BitVecVal(ORACLES[nin][OUT], 64)))
 
@@ -211,12 +244,17 @@ while True:
         nin += 1
     print >> sys.stderr, "Start Solving with %d oracles" % nin
 
-    if S.check() != sat:
+
+    S.set(timeout=15000)
+
+    res = S.check()
+    if res != sat:
+        print >> sys.stderr, "Stopped reason =", res
         print "0\n"
         sys.stdout.flush()
         print >> sys.stderr, "Could not find solution"
         sys.exit(1)
-
+        
     m = S.model()
     lines = [("OUT", "IN[]", "op") for i in range(LIB_LINES)]
 
@@ -226,8 +264,6 @@ while True:
             li = m[LI[i][j]].as_long()
             if li < INPUT_PER_ORACLE:
                 inelms.append("input")
-            elif li < INPUT_PER_ORACLE + 2:
-                inelms.append(str(li - INPUT_PER_ORACLE))
             else:
                 inelms.append("x%d" % int(li - EXTENDED_INPUT))
         oute = m[LO[i]].as_long() - EXTENDED_INPUT
@@ -238,7 +274,10 @@ while True:
     print len(lines)
     print >> sys.stderr, len(lines)
     for l in lines:
-        print "%d %s %s" % (l[0], l[2], ",".join(l[1]))
+        if l[1] == []:
+            print "%d %s _" % (l[0], l[2])
+        else:
+            print "%d %s %s" % (l[0], l[2], ",".join(l[1]))
         print >> sys.stderr, "%d %s %s" % (l[0], l[2], ",".join(l[1]))
     sys.stdout.flush()
 

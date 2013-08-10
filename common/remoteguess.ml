@@ -76,6 +76,7 @@ let guess id program_string =
          (`Assoc(
            [("id", `String(id));
             ("program", `String(program_string))]))) in
+  prerr_endline "Running guess RPC";
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
@@ -87,5 +88,5 @@ let guess id program_string =
     end
   else
     let body = call # response_body # value in
-    print_endline body;
+    prerr_endline ("Body: " ^ body);
     parse_guess_result_string body

@@ -83,6 +83,9 @@ let main =
     end
   else
     let rec guess_function x c =
+      Printf.eprintf
+        "Guessed: %s\n"
+        (Print.print x);
       let guess_submit () = 
 	let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
 	print_endline message;
@@ -108,4 +111,4 @@ let main =
       alllist
     in
     let end_time = Sys.time() in
-    Printf.printf "Execution time: %fs\n" (end_time -. start_time)
+    Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
