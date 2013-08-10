@@ -41,6 +41,7 @@ let parse_operator_string_list l =
               statements := SFold :: !statements
             | "tfold" ->
               statements := STfold :: !statements
+	    | "bonus" -> ()
             | op ->
               prerr_string ("Unknown op: " ^ op);
               raise Parse_error
