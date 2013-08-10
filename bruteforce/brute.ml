@@ -92,6 +92,40 @@ let is_good_unop_cand cand =
   | Op1 (Shl1, Op1 (Shr16, Zero)) -> false  (* = Shr16 (Shl1 Zero) *)
   | _ -> true
 
+let rec simp expr =
+  match expr with
+    Op1 (Shr1, Zero) -> Zero
+    | Op1 (Shr4, Zero) -> Zero
+    | Op1 (Shr16, Zero) -> Zero
+    | Op1 (Shr1, One) -> Zero
+    | Op1 (Shr4, One) -> Zero
+    | Op1 (Shr16, One) -> Zero
+    | Op1 (Shl1, Zero) -> Zero
+    | Op1 (Not, Op1 (Not, a)) -> (simp a)
+    | Op2 (And, _, Zero) -> Zero
+    | Op2 (Or, Zero, Zero) -> Zero
+    | Op2 (Or, Zero, a) -> (simp a)
+    | Op2 (Or, a, Zero) -> (simp a)
+    | Op2 (Or, _, One) -> One
+    | Op2 (Or, One, _) -> One
+    | Op2 (Xor, Zero, Zero) -> Zero
+    | Op2 (Xor, One, Zero) -> One
+    | Op2 (o, a, b) -> Op2 (o, (simp a), (simp b))
+    | Op1 (o, a) -> Op1 (o, simp a)
+    | Fold (a, b, c, d, e) -> Fold (simp a, simp b, c, d, simp e)
+    | k -> k
+
+
+let rec simplify expr =
+  (* let _ = print_endline "--" in *)
+  (* let _ = print_endline (Print.print expr) in *)
+  let simplified = simp expr in
+  (* let _ = print_endline (Print.print simplified) in *)
+  if expr = simplified then
+    expr
+  else
+    simplify simplified
+
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   prerr_endline "Generating";
   let if0_in_ops = List.mem SIf0 allowed_stmts in

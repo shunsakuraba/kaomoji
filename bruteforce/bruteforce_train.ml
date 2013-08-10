@@ -1,6 +1,7 @@
 open Remoteeval
 open Remoteguess
 open Util
+open ExtList
 
 let main =
   if false then
@@ -22,7 +23,7 @@ exception Again
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 8 "bonus" "train" in
+  let core_problem = Remote.fetch_one_core_problem 8 "" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -36,9 +37,12 @@ let main =
     bitseq @ randseq in
   let allowed = (unops, binops, statements) in
   let cand_gen_start_time = Sys.time() in
-  let alllist = Brute.gen allowed size in
+  let alllist_initial = Brute.gen allowed size in
+  let () = Printf.printf "Initialized candidate list (%d elements)\n"
+  (List.length alllist_initial) in
+  let alllist = List.unique (List.map Brute.simplify alllist_initial) in
   let num_candidates = List.length alllist in
-  let () = Printf.printf "Initialized candidate list (%d elements)\n" num_candidates in
+  let () = Printf.printf "Compressed candidate list (%d elements)\n" num_candidates in
   if num_candidates > 10000000 then
     print_endline "Abandoned: too many candidates"
   else
