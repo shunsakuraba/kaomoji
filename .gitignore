@@ -22,3 +22,4 @@ parser/train
 parser/train_fetch_example
 parser/train_guess_example
 parser/train_solve_example
+parser/check_solver
