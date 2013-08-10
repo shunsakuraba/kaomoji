@@ -26,9 +26,51 @@ let print_num_operators ar =
   done;
   Buffer.contents b
 
+(* Following code comes from unix.ml of OCaml *)
+let try_set_close_on_exec fd =
+  try Unix.set_close_on_exec fd; true with Invalid_argument _ -> false
+
+let open_proc cmd input output toclose =
+  let cloexec = List.for_all try_set_close_on_exec toclose in
+  match Unix.fork() with
+     0 -> if input <> Unix.stdin then begin Unix.dup2 input Unix.stdin; Unix.close input end;
+          if output <> Unix.stdout then begin Unix.dup2 output Unix.stdout; Unix.close output end;
+          if not cloexec then List.iter Unix.close toclose;
+          begin try Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; cmd |]
+            with _ -> exit 127
+          end
+  | id -> id
+
+let rec waitpid_non_intr pid =
+  try Unix.waitpid [] pid
+  with Unix.Unix_error (Unix.EINTR, _, _) -> waitpid_non_intr pid
+
+let open_process cmd =
+  let (in_read, in_write) = Unix.pipe() in
+  let fds_to_close = ref [in_read;in_write] in
+  try
+    let (out_read, out_write) = Unix.pipe() in
+    fds_to_close := [in_read;in_write;out_read;out_write];
+    let inchan = Unix.in_channel_of_descr in_read in
+    let outchan = Unix.out_channel_of_descr out_write in
+    let pid = 
+      open_proc cmd out_read in_write
+        [in_read; out_write] in
+    Unix.close out_read;
+    Unix.close in_write;
+    (inchan, outchan, pid)
+  with e ->
+    List.iter Unix.close !fds_to_close;
+    raise e
+
+let close_process (inchan, outchan) pid =
+  close_in inchan;
+  begin try close_out outchan with Sys_error _ -> () end;
+  snd(waitpid_non_intr pid)
+
 let open_solver size nops =
   let solver = solver_place () in
-  let (ich, och) = Unix.open_process ("python " ^ solver) in
+  let (ich, och, pid) = open_process ("python " ^ solver) in
   let () = Printf.fprintf och "%d\n" size in
   let () =
     Array.iteri
@@ -36,7 +78,7 @@ let open_solver size nops =
       nops in
   let () = flush och in
   let _ = input_line ich in
-  (ich, och)
+  (ich, och, pid)
 
 let send_solver_oracle ch iolist =
   let () = Printf.fprintf ch "%d\n" (List.length iolist) in
@@ -48,21 +90,31 @@ let send_solver_oracle ch iolist =
       let () = flush ch in
       ()) iolist
 
-let read_stmt ich = 
-  let n = int_of_string (input_line ich) in
-  if n = 0 
-  then None
+let read_stmt ich och pid = 
+  let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] 15.0 in
+  if selin = [] 
+  then
+    (* Forced timeout *)
+    let () = Printf.printf "Forced timeout (pid = %d)\n" pid in
+    let () = Unix.kill pid Sys.sigkill in
+    None
   else 
-    let stmts = Array.init n 
-      (fun _i ->
-	let l = input_line ich in
-	Scanf.sscanf l "%d %s %s" 
-	  (fun _x -> fun y -> fun z -> 
-	    (y, ExtString.String.nsplit z ","))) in
-    let open Type in
-    let rec iter v = 
-      match stmts.(v) with
-	  (op1, [x]) -> 
+    let n = int_of_string (input_line ich) in
+    if n = 0 
+    then None
+    else 
+      let stmts = Array.init n 
+	(fun _i ->
+	  let l = input_line ich in
+	  Scanf.sscanf l "%d %s %s" 
+	    (fun _x y z -> 
+	      (y, if z = "_" then [] else ExtString.String.nsplit z ","))) in
+      let open Type in
+      let rec iter v = 
+	match stmts.(v) with
+	    ("0", []) -> Zero
+	  | ("1", []) -> One
+	  | (op1, [x]) -> 
 	    let opcode = match op1 with
 		"not" -> Not
 	      | "shl1" -> Shl1
@@ -72,32 +124,32 @@ let read_stmt ich =
 	      | _ -> failwith "Opcode: op1"
 	    in
 	    Op1 (opcode, convert_to_ref x)
-	| (op2, [x; y]) ->
-	  let opcode = match op2 with
-	      "and" -> And
-	    | "or" -> Or
-	    | "xor" -> Xor
-	    | "plus" -> Plus
-	    | _ -> failwith "Opcode: op2"
-	  in
-	  Op2 (opcode, convert_to_ref x, convert_to_ref y)
-	| ("if0", [x;y;z]) -> 
-	  If0 (convert_to_ref x,
-	       convert_to_ref y,
-	       convert_to_ref z)
-	| _ ->
-	  failwith "Unknown statement pattern"
-    and convert_to_ref str = 
-      match str with
-	  "0" -> Type.Zero
-	| "1" -> Type.One
-	| "input" -> Type.Input
-	| _ -> 
-	  let id = Scanf.sscanf str "x%d" (fun x -> x) in
-	  iter id
-    in
-    Some (iter (n - 1))
-
+	  | (op2, [x; y]) ->
+	    let opcode = match op2 with
+		"and" -> And
+	      | "or" -> Or
+	      | "xor" -> Xor
+	      | "plus" -> Plus
+	      | _ -> failwith "Opcode: op2"
+	    in
+	    Op2 (opcode, convert_to_ref x, convert_to_ref y)
+	  | ("if0", [x;y;z]) -> 
+	    If0 (convert_to_ref x,
+		 convert_to_ref y,
+		 convert_to_ref z)
+	  | _ ->
+	    failwith "Unknown statement pattern"
+      and convert_to_ref str = 
+	match str with
+	    "0" -> Type.Zero
+	  | "1" -> Type.One
+	  | "input" -> Type.Input
+	  | _ -> 
+	    let id = Scanf.sscanf str "x%d" (fun x -> x) in
+	    iter id
+      in
+      Some (iter (n - 1))
+	
 type feedback = 
     Success
   | Fail of instance
@@ -121,7 +173,8 @@ let rec remote_guess_wrap id tree =
 
 let main = 
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 20 "-fold" "train" in
+  let nsize = int_of_string (Sys.argv.(1)) in
+  let core_problem = Remote.fetch_one_core_problem nsize "-fold" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -172,12 +225,13 @@ let main =
     then ()
     else
       let () = Hashtbl.replace visited nops true in
-      let (ich, och) = open_solver size nops in
+      let (ich, och, pid) = open_solver size nops in
       let () = send_solver_oracle och !oracles in
       let rec find_solution_loop () =
-	match read_stmt ich with
+	match read_stmt ich och pid with
 	    Some tree ->
-	    (* found solution. Try with local mismatch lists *)
+	      (* found solution. Try with local mismatch lists *)
+	      let () = Printf.printf "%s\n" (Print.print tree) in
 	      let mismatch = 
 		List.filter (fun (ix, ox) -> (Eval.eval tree ix) <> ox) !evals in
 	      begin
@@ -194,7 +248,7 @@ let main =
 			  Success -> (* Oh, you won! *)
 			    let () = Printf.fprintf och "Q\n" in
 			    let () = flush och in
-			    let _ = Unix.close_process (ich, och) in
+			    let _ = close_process (ich, och) pid in
 			    raise Exit
 			| Fail (i, o) ->
 			  let () = oracles := (i, o) :: !oracles in
@@ -217,7 +271,7 @@ let main =
 	      nops;
 	    let () = Printf.fprintf och "Q\n" in
 	    let () = flush och in
-	    let _ = Unix.close_process (ich, och) in
+	    let _ = close_process (ich, och) pid in
 	    nop_change_loop ()
       in
       find_solution_loop ()
