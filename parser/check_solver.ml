@@ -23,7 +23,7 @@ let check_brute id allowed_ops_tuple size challenge count =
   (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess)) *)
   (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs)); *)
 
-  let answers = Brute.gen allowed_ops_tuple size in
+  let answers = Brute.gen2 allowed_ops_tuple size in
 
   Printf.eprintf "Generated size=%d\n" (List.length answers);
   (* List.iter *)
