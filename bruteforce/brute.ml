@@ -117,6 +117,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 		    [d1; d2; d3] ->
 	              List.iter
                         (fun (x, x_used) ->
+			  if x <> Zero then
 	                  List.iter
                             (fun (y, y_used) ->
 		              List.iter 
