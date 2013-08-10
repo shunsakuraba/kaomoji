@@ -62,6 +62,11 @@ let needed_depth bits =
     (((bits lsr 10) land 1) +
         ((bits lsr 11) land 1)) * 2
 
+let is_good_binop_cand cand =
+  match cand with
+  | Op2 (_, a, b) -> (a >= b)
+  | _ -> true
+
 let is_good_unop_cand cand =
   match cand with
   | Op1 (Shr1, Op1 (Shr4, _)) -> false
@@ -158,7 +163,10 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
 		      List.iter
                         (fun (y, y_used) ->
 		          List.iter
-                            (fun op -> cands := (Op2 (op, x, y), x_used lor y_used lor (unused_bin_bit op)) :: !cands)
+			    (fun op -> 
+			      let cand = Op2 (op, x, y) in
+			      if is_good_binop_cand cand then
+				cands := (cand, x_used lor y_used lor (unused_bin_bit op)) :: !cands)
                             allowed_bin)
                         (gen input_shadowed nid 0 can_use_fold d2))
 	            (gen input_shadowed nid 0 can_use_fold d1)
