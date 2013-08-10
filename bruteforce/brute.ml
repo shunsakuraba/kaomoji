@@ -94,7 +94,7 @@ let is_good_unop_cand cand =
 
 let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Printf.eprintf
-    "Generating size=%d %s"
+    "Generating(gen2) size=%d %s\n"
     depth
     (Api.format_operator_tuple (allowed_uns, allowed_bins, allowed_stmts));
 
@@ -246,7 +246,11 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   !merged
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
-  prerr_endline "Generating";
+  Printf.eprintf
+    "Generating(gen) size=%d %s\n"
+    depth
+    (Api.format_operator_tuple (allowed_un, allowed_bin, allowed_stmts));
+
   let if0_in_ops = List.mem SIf0 allowed_stmts in
   let tfold_in_ops = List.mem STfold allowed_stmts in
   let rec gen input_shadowed nid unused can_use_fold depth = 
