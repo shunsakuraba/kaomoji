@@ -60,6 +60,24 @@ let fetch_train size operators =
   else
     call # response_body # value
 
+let rec fetch_train_with_retry size operator =
+  let train_string =
+    if operator = "bonus" then
+      fetch_train 42 ""
+    else
+      fetch_train size operator
+  in
+  let train = parse_train_string train_string in
+  let (t_id, t_size, t_ops, t_challenge) = train in
+  if t_size <> size then
+    fetch_train_with_retry size operator
+  else
+    let (unops, binops, statements) = t_ops in
+    if Util.is_match_ops_limit statements operator then
+      train
+    else
+      fetch_train_with_retry size operator
+
 let read_train_from_file path =
   let in_channel = open_in path in
   let train_string = input_line in_channel in
