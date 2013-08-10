@@ -62,8 +62,7 @@ let check_by_problems () =
 
   List.iter
     (fun (id, size, allowed_ops_tuple, solved, time_over) ->
-      check_brute id allowed_ops_tuple size ((if solved then "T" else
-    "F") ^ ", " ^ (if time_over then "Over" else "Ready")))
+      check_brute id allowed_ops_tuple size ((if solved then "T" else "F") ^ ", " ^ (string_of_float time_over)))
     sorted_problems
 ;;
 
