@@ -95,6 +95,8 @@ let is_good_unop_cand cand =
 let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   prerr_endline "Generating";
 
+  let fold_used_bit = 1 lsl 30 in
+
   let groups = Array.init (depth + 1) (fun _ -> []) in
 
   let num_ids =
@@ -145,19 +147,25 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                 let e2s = Array.get groups d3 in
                 List.iter
                   (fun (e0, e0_flag) ->
-                    if e0_flag land (1 lsl 30) = 0 then
+                    if e0_flag land fold_used_bit = 0 then
                     List.iter
                       (fun (e1, e1_flag) ->
-                        if e1_flag land (1 lsl 30) = 0 then
+                        if e1_flag land fold_used_bit = 0 then
                         List.iter
                           (fun (e2, e2_flag) ->
-                            if e2_flag land (1 lsl 30) = 0 then
+                            if e2_flag land fold_used_bit = 0 then
                             List.iter
                               (fun left ->
                                 List.iter
                                   (fun right ->
                                     if left <> right then
-                                      target := (Fold (e0, e1, left, right, e2), (e0_flag lor e1_flag lor (e2_flag land (lnot ((1 lsr right) lor (1 lsl left)))))):: !target)
+                                      let new_node = Fold (e0, e1, left, right, e2) in
+                                      let new_flag =
+                                        e0_flag lor
+                                          e1_flag lor
+                                          (e2_flag land
+                                             (lnot ((1 lsr right) lor (1 lsl left)))) in
+                                      target := (new_node, new_flag):: !target)
                                   ids)
                               ids)
                           e2s)
@@ -224,7 +232,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   List.iter
     (fun (y, y_flag) ->
-      if y_flag land (lnot (1 lsl 30)) = 0 then
+      if y_flag land (lnot fold_used_bit) = 0 then
         if y_flag = 0 then
           try
             (* let _ = Eval.eval y 0L in *)
