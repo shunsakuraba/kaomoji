@@ -102,7 +102,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let fold_used_bit = 1 lsl 30 in
 
-  let groups = Array.init (depth + 1) (fun _ -> []) in
+  let groups = Array.init (depth) (fun _ -> []) in
 
   let num_ids =
     if List.mem STfold allowed_stmts then 2
@@ -115,7 +115,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
     1
     ((Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))));
 
-  for i = 2 to depth do
+  for i = 2 to depth - 1 do
     let target = ref (Array.get groups i) in
 
     if List.mem SIf0 allowed_stmts then
@@ -248,8 +248,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let end_time = Sys.time() in
   Printf.eprintf
-    "Generated(gen2) %fs\n"
-    (end_time -. start_time);
+    "Generated(gen2) %fs size=%d\n"
+    (end_time -. start_time)
+    (List.length !merged);
 
   !merged
 
@@ -394,6 +395,7 @@ let gen (allowed_un, allowed_bin, allowed_stmts) depth =
       List.map (fun (x, x_used) -> x) (gen false 0 unused fold_in_ops (depth - 1) (* -1 is from the big "lambda" of outside *)) in
   let end_time = Sys.time() in
     Printf.eprintf
-      "Generated(gen) %fs\n"
-      (end_time -. start_time);
+      "Generated(gen) %fs size=%d\n"
+      (end_time -. start_time)
+      (List.length res);
   res
