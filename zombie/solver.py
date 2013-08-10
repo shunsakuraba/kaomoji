@@ -4,6 +4,11 @@ from z3 import *
 
 import sys
 
+if len(sys.argv) >= 2:
+    cut_oracle = int(sys.argv[1])
+else:
+    cut_oracle = 9999
+
 nuops = '0 1'.split()
 #unops = 'not shl1 shr1 shr4 shr16'.split()
 #binops = 'and or xor plus'.split()
@@ -16,21 +21,29 @@ size = int(sys.stdin.next().strip())
 unops_use = sys.stdin.next().split()
 binops_use = sys.stdin.next().split()
 triops_use = sys.stdin.next().split()
+
+if "tfold" in triops_use or "fold" in triops_use:
+    print >> sys.stderr, "Does not support fold / tfold yet"
+    sys.exit(1)
+
 oracle_inputs = [long(x, 0) for x in sys.stdin.next().split()]
 oracle_outputs = [long(x, 0) for x in sys.stdin.next().split()]
 
 INPUT_PER_ORACLE = 1
-MAXCMP = size - 1
+MAXCMP = size - 1 - (len(unops_use) + len(binops_use) * 2 + len(triops_use) * 3 - 1)
 NORACLE = len(oracle_inputs)
 OP_KINDS = 2 + len(unops_use) + len(binops_use) + len(triops_use)
 LIB_LINES = MAXCMP * OP_KINDS
 EXTENDED_LINES = INPUT_PER_ORACLE + LIB_LINES
 
+if NORACLE > cut_oracle:
+    NORACLE = cut_oracle
+
 ORACLES = [ (oracle_inputs[i], oracle_outputs[i]) for i in range(NORACLE)]
 IN = 0
 OUT = 1
 
-print ORACLES
+#print ORACLES
 
 
 lineops = []
@@ -62,6 +75,8 @@ for i in range(LIB_LINES):
     for j in range(ninputs[i]):
         for k in range(LIB_LINES):
             for l in range(ninputs[k]):
+                if (i, j) == (k, l):
+                    continue
                 col_noreuse.append(Implies(LI[i][j] >= INPUT_PER_ORACLE,
                                            LI[i][j] != LI[k][l]))
 
@@ -140,11 +155,12 @@ S.add(col_li)
 S.add(col_lo)
 S.add(col_cons)
 S.add(col_acyc)
-#S.add(col_noreuse)
+S.add(col_noreuse)
 S.add(col_lib)
 S.add(col_conn)
 
-print S
+#print S
+print "SAT construction done. Start solving ..."
 
 if S.check() != sat:
     print "Could not find solution"
