@@ -102,6 +102,12 @@ let redundant = function
     (* | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true *)
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
+    | Op1 (Shr16, (Ident _)) -> true
+    | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
+    | Op1 (Shr4, Op2 (Or, One, _)) -> true
+    | Op1 (Shr4, Op2 (Or, _, One)) -> true
+    | Op1 (Shr16, Op2 (Or, One, _)) -> true
+    | Op1 (Shr16, Op2 (Or, _, One)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
@@ -114,6 +120,8 @@ let redundant = function
     | Op2 (And, a, Op2 (And, b, c)) when a = c -> true
     | Op2 (And, Op1 (Not, Zero), a) -> true
     | Op2 (And, a, Op1 (Not, Zero)) -> true
+    | Op2 (And, _, One) -> true
+    | Op2 (And, One, _) -> true
     | Op2 (Or, a, b) when a = b -> true
     | Op2 (Or, Zero, a) -> true
     | Op2 (Or, Op1 (Not, Zero), a) -> true
