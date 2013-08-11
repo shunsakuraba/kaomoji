@@ -86,7 +86,8 @@ let close_process (inchan, outchan) pid =
 let open_solver size nops is_tfold =
   let solver = solver_place is_tfold in
   let (ich, och, pid) = open_process (solver) in
-  let () = Printf.eprintf "Started solver (pid = %d)" pid in
+  let () = Printf.eprintf "Started solver (pid = %d)\n" pid in
+  let () = flush stderr in 
   let () = Printf.fprintf och "%d\n" size in
   let () =
     Array.iteri
@@ -101,7 +102,7 @@ let send_solver_oracle ch iolist =
   List.iter
     (fun (i, o) ->
       let () = Printf.eprintf "Sending: 0x%016LX 0x%016LX\n" i o in
-      let () = flush stdout in
+      let () = flush stderr in
       let () = Printf.fprintf ch "0x%016LX 0x%016LX\n" i o in
       let () = flush ch in
       ()) iolist
@@ -112,6 +113,7 @@ let read_stmt ich och pid timeout is_tfold =
   then
     (* Forced timeout *)
     let () = Printf.eprintf "Forced timeout (pid = %d)\n" pid in
+    let () = flush stderr in
     let () = Unix.kill pid Sys.sigkill in
     None
   else 
@@ -239,6 +241,7 @@ let core_loop id size unops binops statements initial_candidates =
 	    Some tree ->
 	      (* found solution. Try with local mismatch lists *)
 	      let () = Printf.eprintf "%s\n" (Print.print tree) in
+	      let () = flush stderr in
 	      let mismatch = 
 		List.filter (fun (ix, ox) -> (Eval.eval tree ix) <> ox) !evals in
 	      begin
