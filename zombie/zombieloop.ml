@@ -4,11 +4,13 @@ open Util
 let automode = ref false
 let preferredsize = ref 12
 let probtype = ref "-fold"
+let servermode = ref "train"
 
 let argspec = 
   ["-auto", Arg.Set automode, " Auto-mode (for accept_isk in solver.ml)";
    "-size", Arg.Set_int preferredsize, "[n]  Preferred problem size";
-   "-probtype", Arg.Set_string probtype, "[str]  Preferred problem type (tfold, bonus or -fold)";
+   "-operators", Arg.Set_string probtype, "[str]  Preferred problem type (tfold, bonus or -fold)";
+   "-mode", Arg.Set_string servermode, "[str]  \"train\" or \"real\"";
   ]
 
 let final_timeout = 300.0
@@ -290,7 +292,7 @@ let normal_boot () =
   let _ = Random.self_init() in
   let nsize = !preferredsize in
   let cond = !probtype in
-  let core_problem = Remote.fetch_one_core_problem nsize cond "train" in
+  let core_problem = Remote.fetch_one_core_problem nsize cond !servermode in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
