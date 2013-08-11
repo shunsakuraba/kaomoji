@@ -204,6 +204,7 @@ let expand_db (allowed_uns, allowed_bins, allowed_stmts) db build =
               let elsecases = DynArray.get db d3 in
               List.iter
                 (fun (cond, cond_flag) ->
+                  (* if (not (List.mem STfold allowed_stmts && cond_flag = 0)) then *)
                   if cond <> Zero && cond <> One then
                     List.iter
                       (fun (ifcase, ifcase_flag) ->
@@ -243,8 +244,11 @@ let expand_db (allowed_uns, allowed_bins, allowed_stmts) db build =
                           List.iter
                             (fun (e2, e2_flag) ->
                               if e2_flag land fold_used_bit = 0 then
+                                (* risky *)
+                                (* if (e2_flag land (lnot fold_used_bit)) <> 0 then *)
                                 let new_node = Fold (e0, e1, 0, 1, e2) in
                                 let new_flag =
+                                  fold_used_bit lor
                                   e0_flag lor
                                     e1_flag lor
                                     (e2_flag land
@@ -333,7 +337,7 @@ let generate_candidates_from_db (allowed_uns, allowed_bins, allowed_stmts) db =
     for i = 1 to DynArray.length db - 1 do
       List.iter
         (fun (y, y_flag) ->
-          if (y_flag land fold_used_bit = fold_used_bit) &&
+          if (* (y_flag land fold_used_bit = fold_used_bit) && *)
             (y_flag land (lnot fold_used_bit) = 0)
           then
             merged := y :: !merged)
