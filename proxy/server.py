@@ -53,10 +53,6 @@ class Handler(BaseHTTPRequestHandler):
       if "auth=" not in path:
         path = path + "?auth=" + AUTH
 
-      dic_lock.acquire()
-      global_dic[LAST_REQUEST] = now()
-      dic_lock.release()
-
       req = None
       if is_post:
         content_len = int(self.headers.getheader('content-length'))
@@ -64,6 +60,10 @@ class Handler(BaseHTTPRequestHandler):
         req = urllib2.Request(SITE + path, data = data, headers = self.headers)
       else:
         req = urllib2.Request(SITE + path, headers = self.headers)
+
+      dic_lock.acquire()
+      global_dic[LAST_REQUEST] = now()
+      dic_lock.release()
 
       f = urllib2.urlopen(req)
       self.send_response(200)
