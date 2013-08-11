@@ -3,20 +3,21 @@ open Util
 
 let final_timeout = 300.0
 
-let solver_place () = 
+let solver_place is_tfold = 
   let argv0 = Sys.argv.(0) in
-  Filename.concat (Filename.dirname argv0) "solver.py"
+  Filename.concat (Filename.dirname argv0)
+    (if is_tfold then "solver_tfold.py" else "solver.py")
 
 let opcodemap = [| "not"; "shl1"; "shr1"; "shr4"; "shr16";
 		   "and"; "or"; "xor"; "plus";
 		   "if0" |] 
 let nopcodes = Array.length opcodemap
 
-let cost nop = 
+let cost nop is_tfold = 
   let costarr = [| 1; 1; 1; 1; 1;
 		   2; 2; 2; 2;
 		   3 |] in
-  let ret = ref 1 in
+  let ret = ref (if is_tfold then 3 else 1) in
   Array.iteri (fun i x -> ret := !ret + x * costarr.(i) ) nop;
   !ret
 
@@ -70,8 +71,8 @@ let close_process (inchan, outchan) pid =
   begin try close_out outchan with Sys_error _ -> () end;
   snd(waitpid_non_intr pid)
 
-let open_solver size nops =
-  let solver = solver_place () in
+let open_solver size nops is_tfold =
+  let solver = solver_place is_tfold in
   let (ich, och, pid) = open_process (solver) in
   let () = Printf.printf "Started solver (pid = %d)" pid in
   let () = Printf.fprintf och "%d\n" size in
@@ -93,7 +94,7 @@ let send_solver_oracle ch iolist =
       let () = flush ch in
       ()) iolist
 
-let read_stmt ich och pid timeout = 
+let read_stmt ich och pid timeout is_tfold = 
   let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] timeout in
   if selin = [] 
   then
@@ -147,11 +148,15 @@ let read_stmt ich och pid timeout =
 	    "0" -> Type.Zero
 	  | "1" -> Type.One
 	  | "input" -> Type.Input
+	  | "byte" -> Type.Ident 0
+	  | "accum" -> Type.Ident 1
 	  | _ -> 
 	    let id = Scanf.sscanf str "x%d" (fun x -> x) in
 	    iter id
       in
-      Some (iter (n - 1))
+      if is_tfold 
+      then Some (Fold (Input, Zero, 0, 1, (iter (n - 1))))
+      else Some (iter (n - 1))
 	
 type feedback = 
     Success
@@ -176,10 +181,12 @@ let rec remote_guess_wrap id tree =
 
 let main = 
   let _ = Random.self_init() in
-  let nsize = int_of_string (Sys.argv.(1)) in
-  let core_problem = Remote.fetch_one_core_problem nsize "-fold" "train" in
+  let nsize = if Array.length Sys.argv >= 2 then int_of_string (Sys.argv.(1)) else 20 in
+  let cond = if Array.length Sys.argv >= 3 then Sys.argv.(2) else "-fold" in
+  let core_problem = Remote.fetch_one_core_problem nsize cond "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
+  let is_tfold = List.mem Type.STfold statements in
   let initialguess =
     let bitseq = 
       Array.to_list
@@ -242,14 +249,14 @@ let main =
       then failwith "Solver timed out"
       else ()
     in
-    if cost nops > size || Hashtbl.mem visited nops 
+    if cost nops is_tfold > size || Hashtbl.mem visited nops 
     then ()
     else
       let () = Hashtbl.replace visited nops true in
-      let (ich, och, pid) = open_solver size nops in
+      let (ich, och, pid) = open_solver size nops is_tfold in
       let () = send_solver_oracle och !oracles in
       let rec find_solution_loop () =
-	match read_stmt ich och pid !tout with
+	match read_stmt ich och pid !tout is_tfold with
 	    Some tree ->
 	      (* found solution. Try with local mismatch lists *)
 	      let () = Printf.printf "%s\n" (Print.print tree) in
