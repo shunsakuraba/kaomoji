@@ -98,13 +98,13 @@ let redundant = function
     | Op1 (Shr16, Zero) -> true
     | Op1 (Shr1, One) -> true
     | Op1 (Shr4, One) -> true
-    | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) -> true
-    | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true
+    (* | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) -> true *)
+    (* | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true *)
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
-    | Op2 (Plus, a, b) when a = b -> true
+    (* | Op2 (Plus, a, b) when a = b -> true *)
     | Op2 (And, _, Zero) -> true
     | Op2 (And, a, b) when a = b -> true
     | Op2 (And, Op2 (And, a, b), c) when b = c -> true
@@ -128,11 +128,11 @@ let redundant = function
     | Op2 (Xor, Zero, a) -> true
     | Op2 (Xor, Op1 (Not, Zero), a) -> true
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
-    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true
-    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c -> true
-    | Op2 (Xor, Op2 (Xor, a, b), c) when b = c -> true
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b -> true
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = c -> true
+    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true  (* not in simplified *)
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c -> true  (* not in simplified *)
+    | Op2 (Xor, Op2 (Xor, a, b), c) when b = c -> true  (* not in simplified *)
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b -> true  (* not in simplified *)
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = c -> true  (* not in simplified *)
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
     | If0 (Op1 (Not, Zero), a, b) -> true
@@ -489,9 +489,9 @@ let get_candidates core_problem =
   let alllist_initial = gen2 allowed size in
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
-(*  let simplified = List.map Simplifier.simplify alllist_initial in
-  let () = prerr_endline "Simplification finished." in
-  let alllist = list_to_unique_list simplified in*)
+  (* let simplified = List.map Simplifier.simplify alllist_initial in *)
+  (* let () = prerr_endline "Simplification finished." in *)
+  (* let alllist = list_to_unique_list simplified in *)
   let alllist = alllist_initial in
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
