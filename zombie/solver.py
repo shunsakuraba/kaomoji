@@ -3,6 +3,7 @@
 from z3 import *
 
 import sys
+import os
 import threading
 
 if len(sys.argv) >= 2:
@@ -32,7 +33,7 @@ print >> sys.stderr, size_by_op
 #    print >> sys.stderr, "Does not support fold / tfold yet"
 #    sys.exit(1)
 
-print >> sys.stderr, "Initializing with size=%d" % size
+print >> sys.stderr, "Initializing with size=%d (pid=%d)" % (size, os.getpid())
 # print "Initializing with size=%d" % size
 # sys.stdout.flush()
 

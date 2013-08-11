@@ -36,7 +36,7 @@ let open_proc cmd input output toclose =
      0 -> if input <> Unix.stdin then begin Unix.dup2 input Unix.stdin; Unix.close input end;
           if output <> Unix.stdout then begin Unix.dup2 output Unix.stdout; Unix.close output end;
           if not cloexec then List.iter Unix.close toclose;
-          begin try Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; cmd |]
+          begin try Unix.execv "/usr/bin/python" [| "/usr/bin/python"; cmd |]
             with _ -> exit 127
           end
   | id -> id
@@ -70,7 +70,8 @@ let close_process (inchan, outchan) pid =
 
 let open_solver size nops =
   let solver = solver_place () in
-  let (ich, och, pid) = open_process ("python " ^ solver) in
+  let (ich, och, pid) = open_process (solver) in
+  let () = Printf.printf "Started solver (pid = %d)" pid in
   let () = Printf.fprintf och "%d\n" size in
   let () =
     Array.iteri
@@ -181,11 +182,21 @@ let main =
     let bitseq = 
       Array.to_list
 	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    let artificial_seq = 
+      [ 0x0000_0000_0000_0000L;
+	0x0000_0000_0000_0003L;
+	0x0000_0000_0000_000FL;
+	0x0000_0000_0000_00FFL;
+	0x0000_0000_0000_FFFFL;
+	0x0000_0000_FFFF_FFFFL;
+	0xFFFF_FFFF_FFFF_FFFFL;
+	0x5555_5555_5555_5555L;
+	0xAAAA_AAAA_AAAA_AAAAL; ] in
     let randseq = 
       Array.to_list
-	(Array.init 192
+	(Array.init (256 - (List.length bitseq) - (List.length artificial_seq))
 	   (fun _ -> rand64 ())) in
-    bitseq @ randseq in
+    bitseq @ artificial_seq @ randseq in
   let _allowed = (unops, binops, statements) in
   let (status, outputs, message) = Remote.eval_id id initialguess in
   let () = 
