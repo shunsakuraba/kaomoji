@@ -113,7 +113,9 @@ let redundant = function
     | Op1 (shr, Op2 (o, One, _)) when
 	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
 	(o = Or || o = And) -> true
-    | Op1 (shr, Op2 (o, _, One)) -> true
+    | Op1 (shr, Op2 (o, _, One)) when
+	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+	(o = Or || o = And) -> true
     | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
@@ -145,7 +147,6 @@ let redundant = function
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
     | Op2 (Xor, Op1 (Not, a), b) when a = b -> true
     | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true
     | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
