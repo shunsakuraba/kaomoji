@@ -20,7 +20,7 @@ let main =
     ()
 
 exception Again
-
+let main =
   let _ = Random.self_init() in
   let core_problem = Remote.fetch_one_core_problem 13 "fold" "real" in
   let () = print_endline (Remote.format_core_problem core_problem) in
