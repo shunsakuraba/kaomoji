@@ -114,6 +114,7 @@ let redundant = function
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
     | Op2 (And, _, Zero) -> true
+    | Op2 (And, Zero, _) -> true
     | Op2 (And, a, b) when a = b -> true
     | Op2 (And, Op2 (And, a, b), c) when b = c -> true
     | Op2 (And, Op2 (And, a, b), c) when a = c -> true
