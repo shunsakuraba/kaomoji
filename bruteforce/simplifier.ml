@@ -43,6 +43,7 @@ let rec simp expr =
     | Op2 (Plus, Zero, a) -> (simp a)
     | Op2 (Plus, a, b) when a = b -> Op1 (Shl1, simp a)
     | Op2 (And, _, Zero) -> Zero
+    | Op2 (And, Zero, _) -> Zero
     | Op2 (And, Op1 (Shl1, _), One) -> Zero
     | Op2 (And, One, Op1 (Shl1, _)) -> Zero
     | Op2 (And, a, b) when a = b -> (simp a)
@@ -59,10 +60,8 @@ let rec simp expr =
     | Op2 (Or, Op1 (Not, Zero), a) -> (simp a)
     | Op2 (Or, a, Op1 (Not, Zero)) -> (simp a)
     | Op2 (Or, a, Zero) -> (simp a)
-    | Op2 (Or, _, One) -> One
-    | Op2 (Or, One, _) -> One
-    | Op2 (Or, Op1 (Not, a), b) when a = b -> One
-    | Op2 (Or, a, Op1 (Not, b)) when a = b -> One
+    | Op2 (Or, Op1 (Not, a), b) when a = b -> Op1 (Not, Zero) (* ok? *)
+    | Op2 (Or, a, Op1 (Not, b)) when a = b -> Op1 (Not, Zero) (* ok? *)
     | Op2 (Or, Op2 (Or, a, b), c) when b = c -> Op2 (Or, (simp a), (simp b))
     | Op2 (Xor, a, b) when a = b -> Zero
     | Op2 (Xor, a, Zero) -> (simp a)
@@ -73,7 +72,7 @@ let rec simp expr =
     | Op2 (o, If0 (a, b, c), d) ->
       If0 (a, Op2 (o, b, d), Op2 (o, c, d))
     | Op2 (o, a, If0 (b, c, d)) ->
-      If0 (a, Op2 (o, a, c), Op2 (o, a, d))
+      If0 (b, Op2 (o, a, c), Op2 (o, a, d))
     | Op2 (o, a, b) ->
       let sa = simp a in
       let sb = simp b in
@@ -91,7 +90,6 @@ let rec simp expr =
     | If0 (a, If0 (b, c, d), e) when a = b -> If0 (a, c, e)
     | If0 (a, b, If0 (c, d, e)) when a = c -> If0 (a, b, e)
     | If0 (a, b, c) when (has_expr b a) -> If0 (a, rep_expr b a Zero, c)
-    | If0 (a, b, c) when (has_expr c a) -> If0 (a, b, rep_expr c a Zero)
     | If0 (a, b, c)  -> If0 (simp a, simp b, simp c)
     | k -> k
 
