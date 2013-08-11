@@ -1,3 +1,4 @@
+open DynArray
 open ExtList
 open Type
 
@@ -164,9 +165,179 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | If0 (a, b, If0 (c, d, e)) when a = c -> true
     | _ -> false
 
-let gen2 allowed_ops depth =
+let create_db (_, _, allowed_stmts) =
+  let db = DynArray.make 0 in
+
+  DynArray.add db [];
+
+  DynArray.add db
+    (if List.mem STfold allowed_stmts then
+        (Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) [0; 1]))
+     else if List.mem SFold allowed_stmts then
+        (Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) [0; 1])))
+     else
+        (Input, 0) :: ((Zero, 0) :: [(One, 0)]));
+
+  db
+
+let expand_db (allowed_uns, allowed_bins, allowed_stmts) db build =
+  let fold_used_bit = 1 lsl 30 in
+
   (* let redundancy_checker _ = false in *)
-  let redundancy_checker = redundant allowed_ops in
+  let redundancy_checker = redundant (allowed_uns, allowed_bins, allowed_stmts) in
+
+  let current_db_size = DynArray.length db in
+
+  let target = ref [] in
+
+  if List.mem SIf0 allowed_stmts then
+    List.iter
+      (fun part ->
+        match part with
+            [d1; d2; d3] ->
+              let conds = DynArray.get db d1 in
+              let ifcases = DynArray.get db d2 in
+              let elsecases = DynArray.get db d3 in
+              List.iter
+                (fun (cond, cond_flag) ->
+                  if cond <> Zero && cond <> One then
+                    List.iter
+                      (fun (ifcase, ifcase_flag) ->
+                        if (not ((cond = Ident(0) && (ifcase_flag land 1) = 1))) &&
+                          (not ((cond = Ident(1) && (ifcase_flag land 2) = 2))) then
+                          let f (elsecase, elsecase_flag) =
+                            if (not ((ifcase_flag land fold_used_bit = fold_used_bit) &&
+                                        (elsecase_flag <> 0))) &&
+                              (not ((elsecase_flag land fold_used_bit = fold_used_bit) &&
+                                       (ifcase_flag <> 0)))
+                            then
+                              let new_node = If0 (cond, ifcase, elsecase) in
+                              if not (redundancy_checker new_node) then
+                                let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
+                                target := (new_node, new_flag) :: !target in
+                          List.iter f elsecases)
+                      ifcases)
+                conds
+          | _ -> failwith "partition bug"
+      )
+      (partition 3 (current_db_size - 1));
+
+  if List.mem SFold allowed_stmts then
+    List.iter
+      (fun part ->
+        match part with
+            [d1; d2; d3] ->
+              let e0s = DynArray.get db d1 in
+              let e1s = DynArray.get db d2 in
+              let e2s = DynArray.get db d3 in
+              List.iter
+                (fun (e0, e0_flag) ->
+                  if e0_flag land fold_used_bit = 0 then
+                    List.iter
+                      (fun (e1, e1_flag) ->
+                        if e1_flag land fold_used_bit = 0 then
+                          List.iter
+                            (fun (e2, e2_flag) ->
+                              if e2_flag land fold_used_bit = 0 then
+                                let new_node = Fold (e0, e1, 0, 1, e2) in
+                                let new_flag =
+                                  e0_flag lor
+                                    e1_flag lor
+                                    (e2_flag land
+                                       (lnot ((1 lsr 0) lor (1 lsl 1)))) in
+                                if not (redundancy_checker new_node) then
+                                  target := (new_node, new_flag):: !target)
+                            e2s)
+                      e1s)
+                e0s
+          | _ -> failwith "partition bug"
+      )
+      (partition 3 (current_db_size - 2));
+
+  if List.length allowed_uns <> 0 then
+    begin
+      let children = DynArray.get db (current_db_size - 1) in
+      List.iter
+        (fun (child, child_flag) ->
+          List.iter
+            (fun op ->
+              let new_node = Op1 (op, child) in
+              if not (redundancy_checker new_node) then
+                target := (new_node, child_flag):: !target)
+            allowed_uns)
+        children
+    end;
+
+  if List.length allowed_bins <> 0 then
+    List.iter
+      (fun part ->
+        match part with
+            [d1; d2] ->
+              let lefts = DynArray.get db d1 in
+              let rights = DynArray.get db d2 in
+              List.iter
+                (fun (left, left_flag) ->
+                  List.iter
+                    (fun (right, right_flag) ->
+                      if left <= right then
+                        if (not ((left_flag land fold_used_bit = fold_used_bit) &&
+                                    (right_flag <> 0))) &&
+                          (not ((right_flag land fold_used_bit = fold_used_bit) &&
+                                   (left_flag <> 0)))
+                        then
+                          List.iter
+                            (fun op ->
+                              if (not (left = Zero || right = Zero)) &&
+                                (not ((op <> Plus) && left = right)) &&
+                                (not (op <> Plus &&
+                                        ((left = Zero || left = One) &&
+                                            (right = Zero || right = One))))
+                              then
+                                let new_node = Op2 (op, left, right) in
+                                if not (redundancy_checker new_node) then
+                                  target := (new_node, left_flag lor right_flag) :: !target)
+                            allowed_bins)
+                    rights)
+                lefts
+          | _ -> failwith "partition bug"
+      )
+      (partition 2 (current_db_size - 1));
+
+  let new_entry = !target in
+  let new_entry_size = List.length new_entry in
+  if (float_of_int new_entry_size) *.
+    (3.0 ** (float_of_int(build - current_db_size))) >= 100000000.0 then
+    raise CandidateSizeLooksTooBigException;
+  DynArray.add db new_entry;
+  Printf.eprintf "  depth=%d size=%d\n" current_db_size new_entry_size;
+  flush_all ()
+
+let generate_candidates_from_db (allowed_uns, allowed_bins, allowed_stmts) db =
+  let merged = ref [] in
+
+  let fold_used_bit = 1 lsl 30 in
+
+  if List.mem STfold allowed_stmts then
+    for i = 1 to DynArray.length db - 1 do
+      List.iter
+        (fun (y, y_flag) ->
+          if y_flag land (lnot 3) = 0 then
+            merged := Fold (Input, Zero, 0, 1, y) :: !merged)
+        (DynArray.get db i)
+    done
+  else
+    for i = 1 to DynArray.length db - 1 do
+      List.iter
+        (fun (y, y_flag) ->
+          if y_flag land (lnot fold_used_bit) = 0 then
+            if y_flag = 0 then
+              merged := y :: !merged)
+        (DynArray.get db i)
+    done;
+
+  !merged
+
+let gen2 allowed_ops depth db =
   let allowed_uns, allowed_bins, allowed_stmts = allowed_ops in
 
   Printf.eprintf
@@ -177,185 +348,22 @@ let gen2 allowed_ops depth =
 
   let start_time = Sys.time() in
 
-  let fold_used_bit = 1 lsl 30 in
-
   let build = if List.mem STfold allowed_stmts then depth - 5 else depth - 1 in
 
-  let groups = Array.init (build + 1) (fun _ -> []) in
-
-  let num_ids =
-    if List.mem STfold allowed_stmts then 2
-    else if List.mem SFold allowed_stmts then 2
-    else 0 in
-  let ids = Array.to_list (Array.init num_ids (fun x -> x)) in
-
-  Array.set
-    groups
-    1
-    (if List.mem STfold allowed_stmts then
-        (Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))
-     else if List.mem SFold allowed_stmts then
-        (Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids)))
-     else
-        (Input, 0) :: ((Zero, 0) :: [(One, 0)]));
-
   for i = 2 to build do
-    let target = ref (Array.get groups i) in
-
-    if List.mem SIf0 allowed_stmts then
-      List.iter
-        (fun part ->
-          match part with
-              [d1; d2; d3] ->
-                let conds = Array.get groups d1 in
-                let ifcases = Array.get groups d2 in
-                let elsecases = Array.get groups d3 in
-                List.iter
-                  (fun (cond, cond_flag) ->
-                    if cond <> Zero && cond <> One then
-                      List.iter
-                        (fun (ifcase, ifcase_flag) ->
-                          if (not ((cond = Ident(0) && (ifcase_flag land 1) = 1))) &&
-                            (not ((cond = Ident(1) && (ifcase_flag land 2) = 2))) then
-                          List.iter
-                            (fun (elsecase, elsecase_flag) ->
-                              if (not ((ifcase_flag land fold_used_bit = fold_used_bit) &&
-                                          (elsecase_flag <> 0))) &&
-                                (not ((elsecase_flag land fold_used_bit = fold_used_bit) &&
-                                         (ifcase_flag <> 0)))
-                              then
-                                let new_node = If0 (cond, ifcase, elsecase) in
-                                let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                                if not (redundancy_checker new_node) then
-                                  target := (new_node, new_flag) :: !target)
-                            elsecases)
-                        ifcases)
-                  conds
-            | _ -> failwith "partition bug"
-        )
-        (partition 3 (i - 1));
-
-    if List.mem SFold allowed_stmts then
-      List.iter
-        (fun part ->
-          match part with
-              [d1; d2; d3] ->
-                let e0s = Array.get groups d1 in
-                let e1s = Array.get groups d2 in
-                let e2s = Array.get groups d3 in
-                List.iter
-                  (fun (e0, e0_flag) ->
-                    if e0_flag land fold_used_bit = 0 then
-                    List.iter
-                      (fun (e1, e1_flag) ->
-                        if e1_flag land fold_used_bit = 0 then
-                        List.iter
-                          (fun (e2, e2_flag) ->
-                            if e2_flag land fold_used_bit = 0 then
-                              let new_node = Fold (e0, e1, 0, 1, e2) in
-                              let new_flag =
-                                e0_flag lor
-                                  e1_flag lor
-                                  (e2_flag land
-                                     (lnot ((1 lsr 0) lor (1 lsl 1)))) in
-                              if not (redundancy_checker new_node) then
-                                target := (new_node, new_flag):: !target)
-                          e2s)
-                      e1s)
-                  e0s
-            | _ -> failwith "partition bug"
-        )
-        (partition 3 (i - 2));
-
-    if List.length allowed_uns <> 0 then
-      begin
-        let children = Array.get groups (i - 1) in
-        List.iter
-          (fun (child, child_flag) ->
-            List.iter
-              (fun op ->
-                let new_node = Op1 (op, child) in
-                if not (redundancy_checker new_node) then
-                  target := (new_node, child_flag):: !target)
-              allowed_uns)
-          children
-      end;
-
-    if List.length allowed_bins <> 0 then
-      List.iter
-        (fun part ->
-          match part with
-              [d1; d2] ->
-                let lefts = Array.get groups d1 in
-                let rights = Array.get groups d2 in
-                List.iter
-                  (fun (left, left_flag) ->
-                    List.iter
-                      (fun (right, right_flag) ->
-                        if left <= right then
-                          if (not ((left_flag land fold_used_bit = fold_used_bit) &&
-                                     (right_flag <> 0))) &&
-                            (not ((right_flag land fold_used_bit = fold_used_bit) &&
-                                     (left_flag <> 0)))
-                          then
-                            List.iter
-                              (fun op ->
-                                if (not (left = Zero || right = Zero)) &&
-                                  (not ((op <> Plus) && left = right)) &&
-                                  (not (op <> Plus &&
-                                          ((left = Zero || left = One) &&
-                                              (right = Zero || right = One))))
-                                then
-                                  let new_node = Op2 (op, left, right) in
-                                  if not (redundancy_checker new_node) then
-                                    target := (new_node, left_flag lor right_flag) :: !target)
-                              allowed_bins)
-                      rights)
-                  lefts
-            | _ -> failwith "partition bug"
-        )
-        (partition 2 (i - 1));
-
-    let new_group = !target in
-    let new_group_size = List.length new_group in
-    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build -
-    i))) >= 100000000.0 then
-      raise CandidateSizeLooksTooBigException;
-    Array.set groups i new_group;
-    Printf.eprintf "  depth=%d size=%d\n" i new_group_size;
-    flush_all ()
+    expand_db allowed_ops db build
   done;
 
-
-  let merged = ref [] in
-
-  for j = 1 to depth do
-    if List.mem STfold allowed_stmts then
-      begin
-        if j > 5 then
-          List.iter
-            (fun (y, y_flag) ->
-              if y_flag land (lnot 3) = 0 then
-                merged := Fold (Input, Zero, 0, 1, y) :: !merged)
-            (Array.get groups (j - 5))
-      end
-    else
-      List.iter
-        (fun (y, y_flag) ->
-          if y_flag land (lnot fold_used_bit) = 0 then
-            if y_flag = 0 then
-              merged := y :: !merged)
-        (Array.get groups (j - 1))
-  done;
+  let candidates = generate_candidates_from_db allowed_ops db in
 
   let end_time = Sys.time() in
   Printf.eprintf
     "Generated(gen2) %fs size=%d\n"
     (end_time -. start_time)
-    (List.length !merged);
+    (List.length candidates);
   flush_all ();
 
-  !merged
+  candidates, db
 
 let gen (allowed_un, allowed_bin, allowed_stmts) depth =
   Printf.eprintf
@@ -520,7 +528,11 @@ let get_candidates core_problem =
   let id, size, (unops, binops, statements) = core_problem in
   let cand_gen_start_time = Sys.time() in
   let allowed = (unops, binops, statements) in
-  let alllist_initial = gen2 allowed size in
+
+  let db = create_db allowed in
+
+  let alllist_initial, db = gen2 allowed size db in
+
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
   let simplified = List.map Simplifier.simplify alllist_initial in
