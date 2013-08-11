@@ -76,14 +76,20 @@ let guess id program_string =
          (`Assoc(
            [("id", `String(id));
             ("program", `String(program_string))]))) in
+
   prerr_endline "Running guess RPC";
+
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  let status = call # response_status_code in
-  if status <> 200 then
+
+  let status_code = call # response_status_code in
+  let status_text = call # response_status_text in
+  prerr_endline ("Status: " ^ (string_of_int status_code) ^ " " ^ status_text);
+
+  if status_code <> 200 then
     begin
-      print_endline ("guess failed status: " ^ (string_of_int status));
+      print_endline ("Guess failed");
       raise Api.Fetch_error
     end
   else

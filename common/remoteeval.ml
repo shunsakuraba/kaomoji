@@ -64,39 +64,56 @@ let parse_eval_result_string s =
 
 let eval_id id arguments =
   prerr_endline "Evaluating by id";
+
   let url = Api.api_site ^ "/eval?auth=" ^ Api.auth in
   let call =
     new Http_client.post_raw
       url
       (Yojson.Safe.to_string
-         (`Assoc([("id", `String(id));
-                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
+         (`Assoc(
+           [("id", `String(id));
+            ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
+
+  prerr_endline "Running eval id RPC";
+
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  let status = call # response_status_text in
+
+  let status_code = call # response_status_code in
+  let status_text = call # response_status_text in
+  prerr_endline ("Status: " ^ (string_of_int status_code) ^ " " ^ status_text);
+
   let result = call # response_body # value in
-  prerr_endline ("Status code: " ^ status);
   prerr_endline ("Body: " ^ result);
+
   parse_eval_result_string result
 
 let eval_program program_string arguments =
   prerr_endline "Evaluating by program";
+
   let url = Api.api_site ^ "/eval?auth=" ^ Api.auth in
   let call =
     new Http_client.post_raw
       url
       (Yojson.Safe.to_string
-         (`Assoc([("program", `String(program_string));
-                  ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
-  prerr_endline "Running guess RPC";
+         (`Assoc(
+           [("program", `String(program_string));
+            ("arguments", `List(List.map (fun x -> `String(Printf.sprintf "%Lx" x)) arguments))]))) in
+
+  prerr_endline "Running eval program RPC";
+
   let pipeline = new Http_client.pipeline in
   pipeline # add call;
   pipeline # run();
-  let status = call # response_status_text in
+
+  let status_code = call # response_status_code in
+  let status_text = call # response_status_text in
+  prerr_endline ("Status: " ^ (string_of_int status_code) ^ " " ^ status_text);
+
   let result = call # response_body # value in
-  prerr_endline ("Status code: " ^ status);
   prerr_endline ("Body: " ^ result);
+
   parse_eval_result_string result
 ;;
 
