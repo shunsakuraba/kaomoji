@@ -1,6 +1,8 @@
 open Remoteguess
 open Util
 
+let final_timeout = 300.0
+
 let solver_place () = 
   let argv0 = Sys.argv.(0) in
   Filename.concat (Filename.dirname argv0) "solver.py"
@@ -36,7 +38,7 @@ let open_proc cmd input output toclose =
      0 -> if input <> Unix.stdin then begin Unix.dup2 input Unix.stdin; Unix.close input end;
           if output <> Unix.stdout then begin Unix.dup2 output Unix.stdout; Unix.close output end;
           if not cloexec then List.iter Unix.close toclose;
-          begin try Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; cmd |]
+          begin try Unix.execv "/usr/bin/python" [| "/usr/bin/python"; cmd |]
             with _ -> exit 127
           end
   | id -> id
@@ -70,7 +72,8 @@ let close_process (inchan, outchan) pid =
 
 let open_solver size nops =
   let solver = solver_place () in
-  let (ich, och, pid) = open_process ("python " ^ solver) in
+  let (ich, och, pid) = open_process (solver) in
+  let () = Printf.printf "Started solver (pid = %d)" pid in
   let () = Printf.fprintf och "%d\n" size in
   let () =
     Array.iteri
@@ -90,8 +93,8 @@ let send_solver_oracle ch iolist =
       let () = flush ch in
       ()) iolist
 
-let read_stmt ich och pid = 
-  let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] 20.0 in
+let read_stmt ich och pid timeout = 
+  let (selin, selout, selerr) = Unix.select [Unix.descr_of_in_channel ich] [] [] timeout in
   if selin = [] 
   then
     (* Forced timeout *)
@@ -181,12 +184,23 @@ let main =
     let bitseq = 
       Array.to_list
 	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    let artificial_seq = 
+      [ 0x0000_0000_0000_0000L;
+	0x0000_0000_0000_0003L;
+	0x0000_0000_0000_000FL;
+	0x0000_0000_0000_00FFL;
+	0x0000_0000_0000_FFFFL;
+	0x0000_0000_FFFF_FFFFL;
+	0xFFFF_FFFF_FFFF_FFFFL;
+	0x5555_5555_5555_5555L;
+	0xAAAA_AAAA_AAAA_AAAAL; ] in
     let randseq = 
       Array.to_list
-	(Array.init 192
+	(Array.init (256 - (List.length bitseq) - (List.length artificial_seq))
 	   (fun _ -> rand64 ())) in
-    bitseq @ randseq in
+    bitseq @ artificial_seq @ randseq in
   let _allowed = (unops, binops, statements) in
+  let t0 = Unix.gettimeofday () in
   let (status, outputs, message) = Remote.eval_id id initialguess in
   let () = 
     if status <> Remoteeval.EvalStatusOk then (* FIXME TODO *)
@@ -219,8 +233,15 @@ let main =
     q
   in
   let visited = Hashtbl.create 10 in
+  let tout = ref 15.0 in
   let rec nop_change_loop () = 
     let nops = Queue.pop nopsqueue in
+    let () = tout := !tout +. 5.0 in
+    let () = 
+      if Unix.gettimeofday () > t0 +. final_timeout
+      then failwith "Solver timed out"
+      else ()
+    in
     if cost nops > size || Hashtbl.mem visited nops 
     then ()
     else
@@ -228,7 +249,7 @@ let main =
       let (ich, och, pid) = open_solver size nops in
       let () = send_solver_oracle och !oracles in
       let rec find_solution_loop () =
-	match read_stmt ich och pid with
+	match read_stmt ich och pid !tout with
 	    Some tree ->
 	      (* found solution. Try with local mismatch lists *)
 	      let () = Printf.printf "%s\n" (Print.print tree) in
