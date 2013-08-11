@@ -72,7 +72,7 @@ let fetch_good_problems size_limit ops_limit =
           false
 	else if time_left = 0.0 then
 	  false
-        else if size <> size_limit then
+        else if size_limit > 0 && size <> size_limit then
           false
 	(* else if id <> "Rd5M4m05LdGbUiHz4fsv9Yf8" then *)
 	(*   false *)
