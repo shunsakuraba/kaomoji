@@ -193,6 +193,8 @@ let rec remote_guess_wrap id tree =
 
 let core_loop id size unops binops statements initial_candidates = 
   let is_tfold = List.mem Type.STfold statements in
+  let has_fold = List.mem Type.Sfold statements  in
+  let () = if has_fold then failwith "fold is unsupported " else () in
   let t0 = Unix.gettimeofday () in
   let oracles = ref [List.hd initial_candidates] in
   let evals = ref initial_candidates in
