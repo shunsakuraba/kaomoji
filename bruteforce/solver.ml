@@ -68,28 +68,28 @@ let rec solve_internal accept_risk id size (unops, binops, statements) alllist d
     end
   else
     begin
-      if accept_risk then
-        begin
-	  let solver_place = 
-	    let argv0 = Sys.argv.(0) in
-	    Filename.concat (Filename.dirname argv0)
-	      "../zombie/zombieloop -auto"
-	  in
-          let child_in, child_out = Unix.open_process solver_place in
-          output_string
-	    child_out
-	    (Printf.sprintf
-               "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
-               id
-               size
-               (String.concat " " (List.map Type.unop_to_string unops))
-               (String.concat " " (List.map Type.binop_to_string binops))
-               (String.concat " " (List.map Type.statement_to_string statements))
-               (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
-               (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
-	    );
-          flush child_out
-        end;
+      if accept_risk && List.length existing_inputs = 0 then
+          begin
+	    let solver_place = 
+	      let argv0 = Sys.argv.(0) in
+	      Filename.concat (Filename.dirname argv0)
+	        "../zombie/zombieloop -auto"
+	    in
+            let child_in, child_out = Unix.open_process solver_place in
+            output_string
+	      child_out
+	      (Printf.sprintf
+                 "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+                 id
+                 size
+                 (String.concat " " (List.map Type.unop_to_string unops))
+                 (String.concat " " (List.map Type.binop_to_string binops))
+                 (String.concat " " (List.map Type.statement_to_string statements))
+                 (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
+                 (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
+	      );
+            flush child_out
+          end;
 
       prerr_endline
         (Printf.sprintf

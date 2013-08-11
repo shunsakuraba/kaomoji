@@ -132,6 +132,8 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | Op2 (And, a, b) when a = b -> true
     (* | Op2 (op1, a, Op2 (op2, b, c)) when op1 = op2 && (a > b || a > c) -> true *)
     (* | Op2 (op1, Op2 (op2, a, b), c) when op1 = op2 && (c > b || c > a) -> true *)
+    (* | Op2 (Or, Op1 (Not, _), Op1 (Not, _)) -> List.mem And allowed_bins *) (* todo domorugan *)
+    (* | Op2 (And, Op1 (Not, _), Op1 (Not, _)) -> List.mem Or allowed_bins *) (* todo domorugan *)
     | Op2 (And, Op2 (And, a, b), c) when b = c -> true
     | Op2 (And, Op2 (And, a, b), c) when a = c -> true
     | Op2 (And, a, Op2 (And, b, c)) when a = b -> true
@@ -163,6 +165,8 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | If0 (a, b, c) when b = c -> true
     | If0 (a, If0 (b, c, d), e) when a = b -> true
     | If0 (a, b, If0 (c, d, e)) when a = c -> true
+    (* | If0 (a, Op1 (op1, _), Op1 (op2, _)) when op1 = op2 -> true *) (* todo *)
+    (* | If0 (a, Op2 (op1, _, _), Op2 (op2, _, _)) when op1 = op2 -> true *) (* todo *)
     | _ -> false
 
 let create_db (_, _, allowed_stmts) =
@@ -325,13 +329,22 @@ let generate_candidates_from_db (allowed_uns, allowed_bins, allowed_stmts) db =
             merged := Fold (Input, Zero, 0, 1, y) :: !merged)
         (DynArray.get db i)
     done
+  else if List.mem SFold allowed_stmts then
+    for i = 1 to DynArray.length db - 1 do
+      List.iter
+        (fun (y, y_flag) ->
+          if (y_flag land fold_used_bit = fold_used_bit) &&
+            (y_flag land (lnot fold_used_bit) = 0)
+          then
+            merged := y :: !merged)
+        (DynArray.get db i)
+    done
   else
     for i = 1 to DynArray.length db - 1 do
       List.iter
         (fun (y, y_flag) ->
-          if y_flag land (lnot fold_used_bit) = 0 then
-            if y_flag = 0 then
-              merged := y :: !merged)
+          if y_flag = 0 then
+            merged := y :: !merged)
         (DynArray.get db i)
     done;
 
@@ -544,6 +557,7 @@ let get_candidates core_problem generate_from =
 
   let alllist_initial, db = gen2 allowed generate_from db in
 
+  (* let res = (alllist_initial, db) in *)
   let res = (cleanup_candidates alllist_initial), db in
 
   let start_time = Sys.time() in
