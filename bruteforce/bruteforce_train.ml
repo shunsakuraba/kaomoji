@@ -22,7 +22,7 @@ let main =
 exception Again
 let main =
   let _ = Random.self_init() in
-  let core_problem = Remote.fetch_one_core_problem 13 "fold" "real" in
+  let core_problem = Remote.fetch_one_core_problem 13 "" "train" in
   let () = print_endline (Remote.format_core_problem core_problem) in
   let id, size, (unops, binops, statements) = core_problem in
   let initialguess =
@@ -72,6 +72,9 @@ let main =
     bitseq @ randseq in
     (* bitseq @ fixedseq @ randseq in *)
   let alllist = Brute.get_candidates core_problem in
+  if (List.length alllist) > 20000000 then
+    prerr_endline "Abandoned: too many candidates."
+  else
   let _ = prerr_endline "Requesting initial guess..." in
   let start_time = Sys.time() in
   let (status, outputs, message) = Remote.eval_id id initialguess in
