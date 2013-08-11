@@ -68,6 +68,7 @@ let rec solve_internal accept_risk id size (unops, binops, statements) alllist d
     end
   else
     begin
+      let _ = Unix.alarm 300 in
       if accept_risk && List.length existing_inputs = 0 then
           begin
 	    let solver_place = 
