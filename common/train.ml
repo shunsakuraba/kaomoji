@@ -84,7 +84,7 @@ let rec fetch_train_with_retry size operator =
   in
   let train = parse_train_string train_string in
   let (t_id, t_size, t_ops, t_challenge) = train in
-  if t_size <> size then
+  if size <> 0 && t_size <> size then
     fetch_train_with_retry size operator
   else
     let (unops, binops, statements) = t_ops in
