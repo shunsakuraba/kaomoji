@@ -137,8 +137,6 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | Op2 (And, a, Op2 (And, b, c)) when a = c -> true
     | Op2 (And, Op1 (Not, Zero), a) -> true
     | Op2 (And, a, Op1 (Not, Zero)) -> true
-    | Op2 (And, _, One) -> true
-    | Op2 (And, One, _) -> true
     | Op2 (Or, a, b) when a = b -> true
     | Op2 (Or, Zero, a) -> true
     | Op2 (Or, Op1 (Not, Zero), a) -> true
@@ -167,6 +165,7 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | _ -> false
 
 let gen2 allowed_ops depth =
+  (* let redundancy_checker _ = false in *)
   let redundancy_checker = redundant allowed_ops in
   let allowed_uns, allowed_bins, allowed_stmts = allowed_ops in
 
