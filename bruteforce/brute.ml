@@ -244,20 +244,23 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
   let merged = ref [] in
 
-  for j = 1 to build + 1 do
-    if j > 5 && List.mem STfold allowed_stmts then
+  for j = 1 to depth do
+    if List.mem STfold allowed_stmts then
+      begin
+        if j > 5 then
+          List.iter
+            (fun (y, y_flag) ->
+              if y_flag land (lnot 3) = 0 then
+                merged := Fold (Input, Zero, 0, 1, y) :: !merged)
+            (Array.get groups (j - 5))
+      end
+    else
       List.iter
         (fun (y, y_flag) ->
-          if y_flag land (lnot 3) = 0 then
-            merged := Fold (Input, Zero, 0, 1, y) :: !merged)
-        (Array.get groups (j - 5));
-
-    List.iter
-      (fun (y, y_flag) ->
-        if y_flag land (lnot fold_used_bit) = 0 then
-          if y_flag = 0 then
-            merged := y :: !merged)
-      (Array.get groups (j - 1))
+          if y_flag land (lnot fold_used_bit) = 0 then
+            if y_flag = 0 then
+              merged := y :: !merged)
+        (Array.get groups (j - 1))
   done;
 
   let end_time = Sys.time() in
@@ -438,6 +441,7 @@ let get_candidates core_problem =
   let simplified = List.map Simplifier.simplify alllist_initial in
   let () = prerr_endline "Simplification finished." in
   let alllist = list_to_unique_list simplified in
+(*  let alllist = alllist_initial in *)
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
   let start_time = Sys.time() in
