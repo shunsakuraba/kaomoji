@@ -67,7 +67,12 @@ let solve core_problem accept_risk =
     begin
       if accept_risk then
         begin
-          let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
+	  let solver_place = 
+	    let argv0 = Sys.argv.(0) in
+	    Filename.concat (Filename.dirname argv0)
+	      "../zombie/zombieloop -auto"
+	  in
+          let child_in, child_out = Unix.open_process solver_place in
           output_string
 	    child_out
 	    (Printf.sprintf

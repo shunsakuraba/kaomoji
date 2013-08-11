@@ -1,6 +1,18 @@
 open Remoteguess
 open Util
 
+let automode = ref false
+let preferredsize = ref 12
+let probtype = ref "-fold"
+let servermode = ref "train"
+
+let argspec = 
+  ["-auto", Arg.Set automode, " Auto-mode (for accept_isk in solver.ml)";
+   "-size", Arg.Set_int preferredsize, "[n]  Preferred problem size";
+   "-operators", Arg.Set_string probtype, "[str]  Preferred problem type (tfold, bonus or -fold)";
+   "-mode", Arg.Set_string servermode, "[str]  \"train\" or \"real\"";
+  ]
+
 let final_timeout = 300.0
 
 let solver_place is_tfold = 
@@ -74,7 +86,7 @@ let close_process (inchan, outchan) pid =
 let open_solver size nops is_tfold =
   let solver = solver_place is_tfold in
   let (ich, och, pid) = open_process (solver) in
-  let () = Printf.printf "Started solver (pid = %d)" pid in
+  let () = Printf.eprintf "Started solver (pid = %d)" pid in
   let () = Printf.fprintf och "%d\n" size in
   let () =
     Array.iteri
@@ -88,7 +100,7 @@ let send_solver_oracle ch iolist =
   let () = Printf.fprintf ch "%d\n" (List.length iolist) in
   List.iter
     (fun (i, o) ->
-      let () = Printf.printf "Sending: 0x%016LX 0x%016LX\n" i o in
+      let () = Printf.eprintf "Sending: 0x%016LX 0x%016LX\n" i o in
       let () = flush stdout in
       let () = Printf.fprintf ch "0x%016LX 0x%016LX\n" i o in
       let () = flush ch in
@@ -99,7 +111,7 @@ let read_stmt ich och pid timeout is_tfold =
   if selin = [] 
   then
     (* Forced timeout *)
-    let () = Printf.printf "Forced timeout (pid = %d)\n" pid in
+    let () = Printf.eprintf "Forced timeout (pid = %d)\n" pid in
     let () = Unix.kill pid Sys.sigkill in
     None
   else 
@@ -179,44 +191,9 @@ let rec remote_guess_wrap id tree =
       (Unix.sleep 20; remote_guess_wrap id tree)
     | _ -> failwith "Unknown Status"
 
-let main = 
-  let _ = Random.self_init() in
-  let nsize = if Array.length Sys.argv >= 2 then int_of_string (Sys.argv.(1)) else 20 in
-  let cond = if Array.length Sys.argv >= 3 then Sys.argv.(2) else "-fold" in
-  let core_problem = Remote.fetch_one_core_problem nsize cond "train" in
-  let () = print_endline (Remote.format_core_problem core_problem) in
-  let id, size, (unops, binops, statements) = core_problem in
+let core_loop id size unops binops statements initial_candidates = 
   let is_tfold = List.mem Type.STfold statements in
-  let initialguess =
-    let bitseq = 
-      Array.to_list
-	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
-    let artificial_seq = 
-      [ 0x0000_0000_0000_0000L;
-	0x0000_0000_0000_0003L;
-	0x0000_0000_0000_000FL;
-	0x0000_0000_0000_00FFL;
-	0x0000_0000_0000_FFFFL;
-	0x0000_0000_FFFF_FFFFL;
-	0xFFFF_FFFF_FFFF_FFFFL;
-	0x5555_5555_5555_5555L;
-	0xAAAA_AAAA_AAAA_AAAAL; ] in
-    let randseq = 
-      Array.to_list
-	(Array.init (256 - (List.length bitseq) - (List.length artificial_seq))
-	   (fun _ -> rand64 ())) in
-    bitseq @ artificial_seq @ randseq in
-  let _allowed = (unops, binops, statements) in
   let t0 = Unix.gettimeofday () in
-  let (status, outputs, message) = Remote.eval_id id initialguess in
-  let () = 
-    if status <> Remoteeval.EvalStatusOk then (* FIXME TODO *)
-      begin
-	Printf.printf "Status: \"%s\"\n" (Remoteeval.print_eval_status status);
-	failwith "Eval returned error"
-      end
-    else () in
-  let initial_candidates = (List.combine initialguess outputs) in
   let oracles = ref [List.hd initial_candidates] in
   let evals = ref initial_candidates in
   let init_nops = 
@@ -259,7 +236,7 @@ let main =
 	match read_stmt ich och pid !tout is_tfold with
 	    Some tree ->
 	      (* found solution. Try with local mismatch lists *)
-	      let () = Printf.printf "%s\n" (Print.print tree) in
+	      let () = Printf.eprintf "%s\n" (Print.print tree) in
 	      let mismatch = 
 		List.filter (fun (ix, ox) -> (Eval.eval tree ix) <> ox) !evals in
 	      begin
@@ -308,8 +285,74 @@ let main =
     nop_change_loop ()
   with
       Exit -> 
-	let () = Printf.printf "successfully found solution!\n" in
+	let () = Printf.eprintf "successfully found solution!\n" in
 	()
-    
 
+let normal_boot () = 
+  let _ = Random.self_init() in
+  let nsize = !preferredsize in
+  let cond = !probtype in
+  let core_problem = Remote.fetch_one_core_problem nsize cond !servermode in
+  let () = print_endline (Remote.format_core_problem core_problem) in
+  let id, size, (unops, binops, statements) = core_problem in
+  let initialguess =
+    let bitseq = 
+      Array.to_list
+	(Array.init 64 (fun x -> Int64.shift_left 1L x)) in
+    let artificial_seq = 
+      [ 0x0000_0000_0000_0000L;
+	0x0000_0000_0000_0003L;
+	0x0000_0000_0000_000FL;
+	0x0000_0000_0000_00FFL;
+	0x0000_0000_0000_FFFFL;
+	0x0000_0000_FFFF_FFFFL;
+	0xFFFF_FFFF_FFFF_FFFFL;
+	0x5555_5555_5555_5555L;
+	0xAAAA_AAAA_AAAA_AAAAL; ] in
+    let randseq = 
+      Array.to_list
+	(Array.init (256 - (List.length bitseq) - (List.length artificial_seq))
+	   (fun _ -> rand64 ())) in
+    bitseq @ artificial_seq @ randseq in
+  let _allowed = (unops, binops, statements) in
+  let (status, outputs, message) = Remote.eval_id id initialguess in
+  let () = 
+    if status <> Remoteeval.EvalStatusOk then (* FIXME TODO *)
+      begin
+	Printf.eprintf "Status: \"%s\"\n" (Remoteeval.print_eval_status status);
+	failwith "Eval returned error"
+      end
+    else () in
+  let initial_candidates = (List.combine initialguess outputs) in
+  core_loop id size unops binops statements initial_candidates
+
+let auto_boot () = 
+  let open ExtString in
+  let id = read_line () in
+  let size = int_of_string (read_line ()) in
+  let unops = 
+    List.map Type.unop_of_string (String.nsplit (read_line ()) " ") in
+  let binops = 
+    List.map Type.binop_of_string (String.nsplit (read_line ()) " ") in
+  let statements = 
+    List.map Type.statement_of_string (String.nsplit (read_line ()) " ") in
+  let initialguess = 
+    let strs = String.nsplit (read_line ()) " " in
+    List.map (fun s -> Scanf.sscanf s "0x%LX" (fun x -> x)) strs in
+  let initialoutputs = 
+    let strs = String.nsplit (read_line ()) " " in
+    List.map (fun s -> Scanf.sscanf s "0x%LX" (fun x -> x)) strs in
+  let initial_candidates = (List.combine initialguess initialoutputs) in
+  core_loop id size unops binops statements initial_candidates
+
+let main = 
+  let () = Arg.parse argspec (fun _ -> failwith "") "" in
+  if !automode then
+    auto_boot ()
+  else 
+    normal_boot()
+    
+    
+  
+  
 
