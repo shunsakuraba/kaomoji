@@ -110,6 +110,10 @@ let redundant = function
     | Op1 (Shr16, Op2 (And, _, One)) -> true
     | Op1 (Shr4, Op1 (Shl1, One)) -> true
     | Op1 (Shr16, Op1 (Shl1, One)) -> true
+    | Op1 (shr, Op2 (o, One, _)) when
+	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+	(o = Or || o = And) -> true
+    | Op1 (shr, Op2 (o, _, One)) -> true
     | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
@@ -139,9 +143,10 @@ let redundant = function
     | Op2 (Xor, Zero, a) -> true
     | Op2 (Xor, Op1 (Not, Zero), a) -> true
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
-    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true  (* not in simplified *)
+    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
     | If0 (Op1 (Not, Zero), a, b) -> true
@@ -513,10 +518,10 @@ let get_candidates core_problem =
   let alllist_initial = gen2 allowed size in
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
-  (* let simplified = List.map Simplifier.simplify alllist_initial in *)
-  (* let () = prerr_endline "Simplification finished." in *)
-  (* let alllist = list_to_unique_list simplified in *)
-  let alllist = alllist_initial in
+  let simplified = List.map Simplifier.simplify alllist_initial in
+  let () = prerr_endline "Simplification finished." in
+  let alllist = list_to_unique_list simplified in
+  (* let alllist = alllist_initial in *)
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
   let start_time = Sys.time() in
