@@ -245,9 +245,6 @@ while True:
         nin += 1
     print >> sys.stderr, "Start Solving with %d oracles" % nin
 
-
-    S.set(timeout=15000)
-
     res = S.check()
     if res != sat:
         print >> sys.stderr, "Stopped reason =", res
