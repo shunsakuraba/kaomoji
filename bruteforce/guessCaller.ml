@@ -9,6 +9,7 @@ let rec guess_call eval_results feedback allowed depth candidates =
     | x :: xs ->
       if List.for_all (fun (i, o) -> filter_by_guess i o x) eval_results then
         begin
+          let () = Printf.eprintf "Found (%d remains)\n" (List.length candidates) in
           match feedback x 0 with
             | Success ->
               raise Exit
