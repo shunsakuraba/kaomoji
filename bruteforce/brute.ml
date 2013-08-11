@@ -204,7 +204,8 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                               then
                                 let new_node = If0 (cond, ifcase, elsecase) in
                                 let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                                target := (new_node, new_flag) :: !target)
+                                if not (redundant new_node) then
+                                  target := (new_node, new_flag) :: !target)
                             elsecases)
                         ifcases)
                   conds
@@ -240,7 +241,8 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                                           e1_flag lor
                                           (e2_flag land
                                              (lnot ((1 lsr right) lor (1 lsl left)))) in
-                                      target := (new_node, new_flag):: !target)
+                                      if not (redundant new_node) then
+                                        target := (new_node, new_flag):: !target)
                                   ids)
                               ids)
                           e2s)
@@ -257,7 +259,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
           (fun (child, child_flag) ->
             List.iter
               (fun op ->
-                target := (Op1 (op, child), child_flag):: !target)
+                let new_node = Op1 (op, child) in
+                if not (redundant new_node) then
+                  target := (new_node, child_flag):: !target)
               allowed_uns)
           children
       end;
@@ -287,7 +291,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                                           ((left = Zero || left = One) &&
                                               (right = Zero || right = One))))
                                 then
-                                  target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                                  let new_node = Op2 (op, left, right) in
+                                  if not (redundant new_node) then
+                                    target := (new_node, left_flag lor right_flag) :: !target)
                               allowed_bins)
                       rights)
                   lefts
@@ -295,7 +301,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i (List.filter (fun (x, y) -> not (redundant x)) !target);
+    Array.set groups i !target;
     Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
     flush_all ()
   done;
