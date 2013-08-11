@@ -92,6 +92,57 @@ let is_good_unop_cand cand =
   | Op1 (Shl1, Op1 (Shr16, Zero)) -> false  (* = Shr16 (Shl1 Zero) *)
   | _ -> true
 
+let redundant = function
+    | Op1 (Shr1, Zero) -> true
+    | Op1 (Shr4, Zero) -> true
+    | Op1 (Shr16, Zero) -> true
+    | Op1 (Shr1, One) -> true
+    | Op1 (Shr4, One) -> true
+    | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) -> true
+    | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true
+    | Op1 (Shr16, One) -> true
+    | Op1 (Shl1, Zero) -> true
+    | Op2 (Plus, a, Zero) -> true
+    | Op2 (Plus, Zero, a) -> true
+    | Op2 (Plus, a, b) when a = b -> true
+    | Op2 (And, _, Zero) -> true
+    | Op2 (And, a, b) when a = b -> true
+    | Op2 (And, Op2 (And, a, b), c) when b = c -> true
+    | Op2 (And, Op2 (And, a, b), c) when a = c -> true
+    | Op2 (And, a, Op2 (And, b, c)) when a = b -> true
+    | Op2 (And, a, Op2 (And, b, c)) when a = c -> true
+    | Op2 (And, Op1 (Not, Zero), a) -> true
+    | Op2 (And, a, Op1 (Not, Zero)) -> true
+    | Op2 (Or, a, b) when a = b -> true
+    | Op2 (Or, Zero, a) -> true
+    | Op2 (Or, Op1 (Not, Zero), a) -> true
+    | Op2 (Or, a, Op1 (Not, Zero)) -> true
+    | Op2 (Or, a, Zero) -> true
+    | Op2 (And, _, One) -> true
+    | Op2 (And, One, _) -> true
+    | Op2 (Or, Op1 (Not, a), b) when a = b -> true
+    | Op2 (Or, a, Op1 (Not, b)) when a = b -> true
+    | Op2 (Or, Op2 (Or, a, b), c) when b = c -> true
+    | Op2 (Xor, a, b) when a = b -> true
+    | Op2 (Xor, a, Zero) -> true
+    | Op2 (Xor, Zero, a) -> true
+    | Op2 (Xor, Op1 (Not, Zero), a) -> true
+    | Op2 (Xor, a, Op1 (Not, Zero)) -> true
+    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c -> true
+    | Op2 (Xor, Op2 (Xor, a, b), c) when b = c -> true
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b -> true
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = c -> true
+    | If0 (Zero, a, b) -> true
+    | If0 (a, b, c) when a = b -> true
+    | If0 (Op1 (Not, Zero), a, b) -> true
+    | If0 (Op1 (Not, One), a, b) -> true
+    | If0 (One, a, b) -> true
+    | If0 (a, b, c) when b = c -> true
+    | If0 (a, If0 (b, c, d), e) when a = b -> true
+    | If0 (a, b, If0 (c, d, e)) when a = c -> true
+    | _ -> false
+
 let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Printf.eprintf
     "Generating(gen2) size=%d %s\n"
@@ -236,7 +287,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target;
+    Array.set groups i (List.filter (fun (x, y) -> not (redundant x)) !target);
     Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
     flush_all ()
   done;
@@ -438,10 +489,10 @@ let get_candidates core_problem =
   let alllist_initial = gen2 allowed size in
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
-  let simplified = List.map Simplifier.simplify alllist_initial in
+(*  let simplified = List.map Simplifier.simplify alllist_initial in
   let () = prerr_endline "Simplification finished." in
-  let alllist = list_to_unique_list simplified in
-(*  let alllist = alllist_initial in *)
+  let alllist = list_to_unique_list simplified in*)
+  let alllist = alllist_initial in
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
   let start_time = Sys.time() in
