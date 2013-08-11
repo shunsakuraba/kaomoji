@@ -5,6 +5,9 @@ from z3 import *
 import sys
 import os
 import threading
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 if len(sys.argv) >= 2:
     cut_oracle = int(sys.argv[1])
