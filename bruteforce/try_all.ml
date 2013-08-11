@@ -11,4 +11,5 @@ let main =
     let prob_index = 0 in
     (* let prob_index = Random.int (List.length good_problems) in *)
     let problem = (List.nth good_problems prob_index) in
-    solve_one_problem problem
+    solve_one_problem problem false
+

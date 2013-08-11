@@ -48,7 +48,7 @@ let get_initialguess () =
   bitseq @ randseq
 (* bitseq @ fixedseq @ randseq in *)
 
-let solve core_problem =
+let solve core_problem accept_risk =
   let id, size, (unops, binops, statements) = core_problem in
   let alllist = Brute.get_candidates core_problem in
   if (List.length alllist) > 100000000 then
@@ -64,20 +64,21 @@ let solve core_problem =
       failwith "Eval returned error"
     end
   else
-    let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
-    output_string
-      child_out
-      (Printf.sprintf
-         "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
-         id
-         size
-         (String.concat " " (List.map Type.unop_to_string unops))
-         (String.concat " " (List.map Type.binop_to_string binops))
-         (String.concat " " (List.map Type.statement_to_string statements))
-         (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
-         (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
-      );
-    flush child_out;
+    if accept_risk then
+      let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
+      output_string
+	child_out
+	(Printf.sprintf
+           "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+           id
+           size
+           (String.concat " " (List.map Type.unop_to_string unops))
+           (String.concat " " (List.map Type.binop_to_string binops))
+           (String.concat " " (List.map Type.statement_to_string statements))
+           (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
+           (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
+	);
+      flush child_out;
 
     let rec guess_function x c =
       Printf.eprintf
