@@ -84,5 +84,7 @@ let fetch_good_problems size_limit ops_limit =
 
 let read_local_problems () =
   prerr_endline "Reading local problem";
-  let problem_string = read_line () in
-  Yojson.Safe.from_string problem_string
+  let argv0 = Sys.argv.(0) in
+  let problem_json_file = Filename.concat (Filename.dirname argv0) "problems.json" in
+  let problems_json = Yojson.Safe.from_file problem_json_file in
+  parse_problems_json problems_json

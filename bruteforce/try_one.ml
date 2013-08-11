@@ -22,12 +22,16 @@ let main =
 
   let _ = Random.self_init() in
   let prob_id = Sys.argv.(1) in
-  let good_problems = Remote.fetch_good_problems 0 "" in
+  (* let good_problems = Remote.fetch_good_problems 0 "" in *)
+  let good_problems = Problem.read_local_problems () in
   let matched_problems = List.filter (fun p ->
     let (id, size, ops, solved, time_left) = p in
-    id = prob_id) good_problems in
-  let problem = List.nth matched_problems 0 in
-  try
-    solve_one_problem problem !risk_mode !generate_from
-  with Brute.CandidateSizeLooksTooBigException ->
-    prerr_endline "candidate size too big"
+    id = prob_id && time_left > 0.0) good_problems in
+  if List.length matched_problems = 0 then
+    failwith "candidate size too big"
+  else
+    let problem = List.nth matched_problems 0 in
+    try
+      solve_one_problem problem !risk_mode !generate_from
+    with Brute.CandidateSizeLooksTooBigException ->
+      prerr_endline "candidate size too big"
