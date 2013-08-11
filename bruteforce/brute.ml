@@ -103,6 +103,7 @@ let redundant = function
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
     | Op1 (Shr16, (Ident _)) -> true
+    | Op1 (Shr16, Op1 (Not, (Ident _))) -> true  (* Shr16 Not Zero *)
     | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
     | Op1 (Shr4, Op2 (And, One, _)) -> true
     | Op1 (Shr4, Op2 (And, _, One)) -> true
