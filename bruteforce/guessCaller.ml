@@ -12,7 +12,7 @@ let rec guess_call eval_results feedback allowed depth candidates =
           let () = Printf.eprintf "Found (%d remains)\n" (List.length candidates) in
           match feedback x 0 with
             | Success ->
-              raise Exit
+              ()
             | Fail (i, o) ->
               guess_call ((i, o) :: eval_results) feedback allowed depth xs
         end

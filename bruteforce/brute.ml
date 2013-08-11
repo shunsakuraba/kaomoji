@@ -104,12 +104,19 @@ let redundant = function
     | Op1 (Shl1, Zero) -> true
     | Op1 (Shr16, (Ident _)) -> true
     | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
-    | Op1 (Shr4, Op2 (Or, One, _)) -> true
-    | Op1 (Shr4, Op2 (Or, _, One)) -> true
-    | Op1 (Shr16, Op2 (Or, One, _)) -> true
-    | Op1 (Shr16, Op2 (Or, _, One)) -> true
+    | Op1 (Shr4, Op2 (And, One, _)) -> true
+    | Op1 (Shr4, Op2 (And, _, One)) -> true
+    | Op1 (Shr16, Op2 (And, One, _)) -> true
+    | Op1 (Shr16, Op2 (And, _, One)) -> true
     | Op1 (Shr4, Op1 (Shl1, One)) -> true
     | Op1 (Shr16, Op1 (Shl1, One)) -> true
+    | Op1 (shr, Op2 (o, One, _)) when
+	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+	(o = Or || o = And) -> true
+    | Op1 (shr, Op2 (o, _, One)) when
+	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+	(o = Or || o = And) -> true
+    | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
@@ -138,9 +145,9 @@ let redundant = function
     | Op2 (Xor, Zero, a) -> true
     | Op2 (Xor, Op1 (Not, Zero), a) -> true
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
-    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true  (* not in simplified *)
+    | Op2 (Xor, Op1 (Not, a), b) when a = b -> true
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
     | If0 (Op1 (Not, Zero), a, b) -> true
@@ -175,7 +182,12 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Array.set
     groups
     1
-    ((Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))));
+    (if List.mem STfold allowed_stmts then
+        (Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))
+     else if List.mem SFold allowed_stmts then
+        (Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids)))
+     else
+        (Input, 0) :: ((Zero, 0) :: [(One, 0)]));
 
   for i = 2 to build do
     let target = ref (Array.get groups i) in
@@ -301,8 +313,12 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target;
-    Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
+    let new_group = !target in
+    let new_group_size = List.length new_group in
+    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build - i))) >= 100000000.0 then
+      failwith ("Give up: new_group_size=" ^ (string_of_int new_group_size));
+    Array.set groups i new_group;
+    Printf.eprintf "  depth=%d size=%d\n" i new_group_size;
     flush_all ()
   done;
 
@@ -503,10 +519,10 @@ let get_candidates core_problem =
   let alllist_initial = gen2 allowed size in
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
-  (* let simplified = List.map Simplifier.simplify alllist_initial in *)
-  (* let () = prerr_endline "Simplification finished." in *)
-  (* let alllist = list_to_unique_list simplified in *)
-  let alllist = alllist_initial in
+  let simplified = List.map Simplifier.simplify alllist_initial in
+  let () = prerr_endline "Simplification finished." in
+  let alllist = list_to_unique_list simplified in
+  (* let alllist = alllist_initial in *)
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
   let start_time = Sys.time() in
