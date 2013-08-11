@@ -110,6 +110,7 @@ let redundant = function
     | Op1 (Shr16, Op2 (And, _, One)) -> true
     | Op1 (Shr4, Op1 (Shl1, One)) -> true
     | Op1 (Shr16, Op1 (Shl1, One)) -> true
+    | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
