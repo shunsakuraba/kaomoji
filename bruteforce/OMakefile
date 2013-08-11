@@ -166,11 +166,13 @@ OCAMLPACKS[] =
 BRUTE_FILES[] =
    bruteforce_train
    brute
+   solver
    simplifier
    guessCaller
 
 TEST_BRUTE_FILES[] =
    brute
+   solver
    simplifier
    test_brute
    guessCaller
