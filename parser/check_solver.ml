@@ -14,15 +14,6 @@ let check_brute id allowed_ops_tuple size challenge count =
     challenge;
   flush_all ();
 
-  (* let uns, bins, stmts = allowed_ops_tuple in *)
-  (* Printf.printf *)
-  (*   "%s\n%d\n%s\n%s\n%s\n%s\n%s\n" *)
-  (*   (String.concat " " (List.map unop_to_string uns)) *)
-  (*   (String.concat " " (List.map binop_to_string bins)) *)
-  (*   (String.concat " " (List.map statement_to_string stmts)) *)
-  (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess)) *)
-  (*   (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs)); *)
-
   let answers = Brute.gen2 allowed_ops_tuple size in
 
   Printf.eprintf "Generated size=%d\n" (List.length answers);
