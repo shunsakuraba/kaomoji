@@ -60,3 +60,26 @@ let statement_to_cstring = function
   | SIf0 -> "SIf0"
   | SFold -> "SFold"
   | STfold -> "STfold"
+
+
+let unop_of_string = function
+  | "Not" -> Not
+  | "Shl1" -> Shl1
+  | "Shr1" -> Shr1
+  | "Shr4" -> Shr4
+  | "Shr16" -> Shr16
+  | _ -> raise Not_found
+
+let binop_of_string = function
+  | "And" -> And
+  | "Or" -> Or
+  | "Xor" -> Xor
+  | "Plus" -> Plus
+  | _ -> raise Not_found
+
+let statement_of_string = function
+  | "SIf0" -> SIf0
+  | "SFold" -> SFold
+  | "STfold" -> STfold
+  | _ -> raise Not_found
+    
