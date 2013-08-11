@@ -306,8 +306,12 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i !target;
-    Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
+    let new_group = !target in
+    let new_group_size = List.length new_group in
+    if new_group_size >= 50000000 then
+      failwith ("Give up: new_group_size=" ^ (string_of_int new_group_size));
+    Array.set groups i new_group;
+    Printf.eprintf "  depth=%d size=%d\n" i new_group_size;
     flush_all ()
   done;
 
