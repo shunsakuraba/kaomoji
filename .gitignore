@@ -19,6 +19,8 @@ bruteforce/main
 bruteforce/brute
 bruteforce/test_brute
 bruteforce/main.native
+bruteforce/try_all
+bruteforce/try_one
 parser/dump_json
 parser/fetch
 parser/fetch_problems
