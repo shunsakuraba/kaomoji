@@ -30,11 +30,17 @@ let rec simp expr =
     | Op1 (Shr16, Zero) -> Zero
     | Op1 (Shr1, One) -> Zero
     | Op1 (Shr4, One) -> Zero
+    | Op1 (Shr4, Op1 (Shr1, a)) -> Op1 (Shr1, Op1 (Shr4, simp a))
+    | Op1 (Shr16, Op1 (Shr1, a)) -> Op1 (Shr1, Op1 (Shr16, simp a))
+    | Op1 (Shr16, Op1 (Shr4, a)) -> Op1 (Shr4, Op1 (Shr16, simp a))
     | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) ->
       Op1 (Shr4, simp a)
     | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) ->
       Op1 (Shr16, simp a)
     | Op1 (Shr16, One) -> Zero
+    | Op1 (Shr1, Op1 (Not, One)) -> Op1 (Shr1, Op1 (Not, Zero))
+    | Op1 (Shr4, Op1 (Not, One)) -> Op1 (Shr4, Op1 (Not, Zero))
+    | Op1 (Shr16, Op1 (Not, One)) -> Op1 (Shr16, Op1 (Not, Zero))
     | Op1 (Shl1, Zero) -> Zero
     | Op1 (Not, Op1 (Not, a)) -> (simp a)
     | Op1 (o, If0 (a, b, c)) -> If0 (a, Op1 (o, simp b), Op1 (o, simp c))
