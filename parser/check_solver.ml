@@ -48,7 +48,7 @@ let check_brute id allowed_ops_tuple size challenge count =
     challenge;
   flush_all ();
 
-  let answers = Brute.gen2 allowed_ops_tuple size in
+  let answers, _ = Brute.gen2 allowed_ops_tuple size (Brute.create_db allowed_ops_tuple) in
 
   Printf.eprintf "Generated size=%d\n" (List.length answers);
   (* List.iter *)
@@ -127,7 +127,7 @@ let check_brute id allowed_ops_tuple size challenge count =
   in
 
   (* Solve! *)
-  let alllist = Brute.gen2 allowed_ops_tuple size in
+  let alllist, _ = Brute.gen2 allowed_ops_tuple size (Brute.create_db allowed_ops_tuple) in
   GuessCaller.guess_call
     (List.combine initialguess outputs)
     guess_function
