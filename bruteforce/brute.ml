@@ -102,10 +102,19 @@ let redundant = function
     (* | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true *)
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
+    | Op1 (Shr16, (Ident _)) -> true
+    | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
+    | Op1 (Shr4, Op2 (Or, One, _)) -> true
+    | Op1 (Shr4, Op2 (Or, _, One)) -> true
+    | Op1 (Shr16, Op2 (Or, One, _)) -> true
+    | Op1 (Shr16, Op2 (Or, _, One)) -> true
+    | Op1 (Shr4, Op1 (Shl1, One)) -> true
+    | Op1 (Shr16, Op1 (Shl1, One)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
     | Op2 (And, _, Zero) -> true
+    | Op2 (And, Zero, _) -> true
     | Op2 (And, a, b) when a = b -> true
     | Op2 (And, Op2 (And, a, b), c) when b = c -> true
     | Op2 (And, Op2 (And, a, b), c) when a = c -> true
@@ -113,26 +122,25 @@ let redundant = function
     | Op2 (And, a, Op2 (And, b, c)) when a = c -> true
     | Op2 (And, Op1 (Not, Zero), a) -> true
     | Op2 (And, a, Op1 (Not, Zero)) -> true
+    | Op2 (And, _, One) -> true
+    | Op2 (And, One, _) -> true
     | Op2 (Or, a, b) when a = b -> true
     | Op2 (Or, Zero, a) -> true
     | Op2 (Or, Op1 (Not, Zero), a) -> true
     | Op2 (Or, a, Op1 (Not, Zero)) -> true
     | Op2 (Or, a, Zero) -> true
-    | Op2 (And, _, One) -> true
-    | Op2 (And, One, _) -> true
     | Op2 (Or, Op1 (Not, a), b) when a = b -> true
     | Op2 (Or, a, Op1 (Not, b)) when a = b -> true
     | Op2 (Or, Op2 (Or, a, b), c) when b = c -> true
+    | Op2 (Or, a, Op2 (Or, b, c)) when a = b -> true
     | Op2 (Xor, a, b) when a = b -> true
     | Op2 (Xor, a, Zero) -> true
     | Op2 (Xor, Zero, a) -> true
     | Op2 (Xor, Op1 (Not, Zero), a) -> true
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
     | Op2 (Xor, Op1 (Not, a), b) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when b = c -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = c -> true  (* not in simplified *)
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true  (* not in simplified *)
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true  (* not in simplified *)
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
     | If0 (Op1 (Not, Zero), a, b) -> true
@@ -196,7 +204,8 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                               then
                                 let new_node = If0 (cond, ifcase, elsecase) in
                                 let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                                target := (new_node, new_flag) :: !target)
+                                if not (redundant new_node) then
+                                  target := (new_node, new_flag) :: !target)
                             elsecases)
                         ifcases)
                   conds
@@ -232,7 +241,8 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                                           e1_flag lor
                                           (e2_flag land
                                              (lnot ((1 lsr right) lor (1 lsl left)))) in
-                                      target := (new_node, new_flag):: !target)
+                                      if not (redundant new_node) then
+                                        target := (new_node, new_flag):: !target)
                                   ids)
                               ids)
                           e2s)
@@ -249,7 +259,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
           (fun (child, child_flag) ->
             List.iter
               (fun op ->
-                target := (Op1 (op, child), child_flag):: !target)
+                let new_node = Op1 (op, child) in
+                if not (redundant new_node) then
+                  target := (new_node, child_flag):: !target)
               allowed_uns)
           children
       end;
@@ -279,7 +291,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                                           ((left = Zero || left = One) &&
                                               (right = Zero || right = One))))
                                 then
-                                  target := (Op2 (op, left, right), left_flag lor right_flag) :: !target)
+                                  let new_node = Op2 (op, left, right) in
+                                  if not (redundant new_node) then
+                                    target := (new_node, left_flag lor right_flag) :: !target)
                               allowed_bins)
                       rights)
                   lefts
@@ -287,7 +301,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
         )
         (partition 2 (i - 1));
 
-    Array.set groups i (List.filter (fun (x, y) -> not (redundant x)) !target);
+    Array.set groups i !target;
     Printf.eprintf "  depth=%d size=%d\n" i (List.length !target);
     flush_all ()
   done;

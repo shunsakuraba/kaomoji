@@ -4,17 +4,24 @@ open ExtList
 let filter_by_guess input output expr =
   Eval.eval expr input = output
 
-(*let guess_call eval_results feedback allowed depth candidates =
+let rec guess_call eval_results feedback allowed depth candidates =
   let rec consume = function
     | x :: xs ->
       if List.for_all (fun (i, o) -> filter_by_guess i o x) eval_results then
-        x, xs
+        begin
+          let () = Printf.eprintf "Found (%d remains)\n" (List.length candidates) in
+          match feedback x 0 with
+            | Success ->
+              raise Exit
+            | Fail (i, o) ->
+              guess_call ((i, o) :: eval_results) feedback allowed depth xs
+        end
       else
         consume xs
-    | _ -> raise Not_found in
-  consume candidates*)
-  
-let guess_call initial feedback allowed depth alllist = 
+    | _ -> failwith "No more candidates" in
+  consume candidates
+
+let guess_call_ initial feedback allowed depth alllist = 
   (* let () = List.iter (fun x -> print_endline (Print.print x)) alllist in *)
   let initiallist = 
     (* List.fold_left *)
