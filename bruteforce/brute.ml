@@ -1,6 +1,8 @@
 open ExtList
 open Type
 
+exception CandidateSizeLooksTooBigException
+
 let (@@) f x = f x
 
 let partition elms k =
@@ -92,37 +94,43 @@ let is_good_unop_cand cand =
   | Op1 (Shl1, Op1 (Shr16, Zero)) -> false  (* = Shr16 (Shl1 Zero) *)
   | _ -> true
 
-let redundant = function
+let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | Op1 (Shr1, Zero) -> true
     | Op1 (Shr4, Zero) -> true
     | Op1 (Shr16, Zero) -> true
     | Op1 (Shr1, One) -> true
     | Op1 (Shr4, One) -> true
-    (* | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) -> true *)
-    (* | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> true *)
+    | Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, Op1 (Shr1, a)))) -> List.mem Shr4 allowed_uns
+    | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> List.mem Shr16 allowed_uns
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
-    | Op1 (Shr16, (Ident _)) -> true
-    | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
+    | Op1 (Shr16, (Ident 0)) -> true
+    | Op1 (Shr16, Op1 (Not, (Ident 0))) -> true  (* Shr16 Not Zero *)
+    | Op1 (Shr4, Op1 (Shr4, (Ident 0))) -> true
     | Op1 (Shr4, Op2 (And, One, _)) -> true
     | Op1 (Shr4, Op2 (And, _, One)) -> true
     | Op1 (Shr16, Op2 (And, One, _)) -> true
     | Op1 (Shr16, Op2 (And, _, One)) -> true
     | Op1 (Shr4, Op1 (Shl1, One)) -> true
     | Op1 (Shr16, Op1 (Shl1, One)) -> true
+    (* | Op1 (Shr16, Op1 (Shr1, _)) -> true *)
+    (* | Op1 (Shr4, Op1 (Shr1, _)) -> true *)
+    (* | Op1 (Shr16, Op1 (Shr4, _)) -> true *)
     | Op1 (shr, Op2 (o, One, _)) when
-	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
-	(o = Or || o = And) -> true
+        (shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+        (o = Or || o = And) -> true
     | Op1 (shr, Op2 (o, _, One)) when
-	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
-	(o = Or || o = And) -> true
+        (shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+        (o = Or || o = And) -> true
     | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
-    (* | Op2 (Plus, a, b) when a = b -> true *)
+    | Op2 (Plus, a, b) when a = b -> List.mem Shl1 allowed_uns
     | Op2 (And, _, Zero) -> true
     | Op2 (And, Zero, _) -> true
     | Op2 (And, a, b) when a = b -> true
+    (* | Op2 (op1, a, Op2 (op2, b, c)) when op1 = op2 && (a > b || a > c) -> true *)
+    (* | Op2 (op1, Op2 (op2, a, b), c) when op1 = op2 && (c > b || c > a) -> true *)
     | Op2 (And, Op2 (And, a, b), c) when b = c -> true
     | Op2 (And, Op2 (And, a, b), c) when a = c -> true
     | Op2 (And, a, Op2 (And, b, c)) when a = b -> true
@@ -158,7 +166,10 @@ let redundant = function
     | If0 (a, b, If0 (c, d, e)) when a = c -> true
     | _ -> false
 
-let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
+let gen2 allowed_ops depth =
+  let redundancy_checker = redundant allowed_ops in
+  let allowed_uns, allowed_bins, allowed_stmts = allowed_ops in
+
   Printf.eprintf
     "Generating(gen2) size=%d %s\n"
     depth
@@ -216,7 +227,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                               then
                                 let new_node = If0 (cond, ifcase, elsecase) in
                                 let new_flag = cond_flag lor ifcase_flag lor elsecase_flag in
-                                if not (redundant new_node) then
+                                if not (redundancy_checker new_node) then
                                   target := (new_node, new_flag) :: !target)
                             elsecases)
                         ifcases)
@@ -242,21 +253,14 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                         List.iter
                           (fun (e2, e2_flag) ->
                             if e2_flag land fold_used_bit = 0 then
-                            List.iter
-                              (fun left ->
-                                List.iter
-                                  (fun right ->
-                                    if left <> right then
-                                      let new_node = Fold (e0, e1, left, right, e2) in
-                                      let new_flag =
-                                        e0_flag lor
-                                          e1_flag lor
-                                          (e2_flag land
-                                             (lnot ((1 lsr right) lor (1 lsl left)))) in
-                                      if not (redundant new_node) then
-                                        target := (new_node, new_flag):: !target)
-                                  ids)
-                              ids)
+                              let new_node = Fold (e0, e1, 0, 1, e2) in
+                              let new_flag =
+                                e0_flag lor
+                                  e1_flag lor
+                                  (e2_flag land
+                                     (lnot ((1 lsr 0) lor (1 lsl 1)))) in
+                              if not (redundancy_checker new_node) then
+                                target := (new_node, new_flag):: !target)
                           e2s)
                       e1s)
                   e0s
@@ -272,7 +276,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
             List.iter
               (fun op ->
                 let new_node = Op1 (op, child) in
-                if not (redundant new_node) then
+                if not (redundancy_checker new_node) then
                   target := (new_node, child_flag):: !target)
               allowed_uns)
           children
@@ -304,7 +308,7 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
                                               (right = Zero || right = One))))
                                 then
                                   let new_node = Op2 (op, left, right) in
-                                  if not (redundant new_node) then
+                                  if not (redundancy_checker new_node) then
                                     target := (new_node, left_flag lor right_flag) :: !target)
                               allowed_bins)
                       rights)
@@ -315,8 +319,9 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
 
     let new_group = !target in
     let new_group_size = List.length new_group in
-    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build - i))) >= 100000000.0 then
-      failwith ("Give up: new_group_size=" ^ (string_of_int new_group_size));
+    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build -
+    i))) >= 100000000.0 then
+      raise CandidateSizeLooksTooBigException;
     Array.set groups i new_group;
     Printf.eprintf "  depth=%d size=%d\n" i new_group_size;
     flush_all ()

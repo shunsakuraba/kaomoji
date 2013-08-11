@@ -18,6 +18,9 @@ let eval_program program_string arguments =
 let guess id challenge =
   Remoteguess.guess id challenge
 
+let fetch_good_problems size_limit ops_limit =
+  Problem.fetch_good_problems size_limit ops_limit
+
 let fetch_one_core_problem size_limit ops_limit target =
   if target = "real" then
     let good_problems = fetch_good_problems size_limit ops_limit in

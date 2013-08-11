@@ -41,7 +41,7 @@ let rec simp expr =
     | Op1 (o, a) -> Op1 (o, simp a)
     | Op2 (Plus, a, Zero) -> (simp a)
     | Op2 (Plus, Zero, a) -> (simp a)
-    | Op2 (Plus, a, b) when a = b -> Op1 (Shr1, simp a)
+    | Op2 (Plus, a, b) when a = b -> Op1 (Shl1, simp a)
     | Op2 (And, _, Zero) -> Zero
     | Op2 (And, Op1 (Shl1, _), One) -> Zero
     | Op2 (And, One, Op1 (Shl1, _)) -> Zero
