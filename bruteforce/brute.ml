@@ -524,15 +524,7 @@ let list_to_unique_list list =
   in
   list_to_unique_list list PMap.empty []
 
-let get_candidates core_problem =
-  let id, size, (unops, binops, statements) = core_problem in
-  let cand_gen_start_time = Sys.time() in
-  let allowed = (unops, binops, statements) in
-
-  let db = create_db allowed in
-
-  let alllist_initial, db = gen2 allowed size db in
-
+let cleanup_candidates alllist_initial =
   let () = prerr_endline (Printf.sprintf "Initialized candidate list (%d elements)"
 			    (List.length alllist_initial)) in
   let simplified = List.map Simplifier.simplify alllist_initial in
@@ -541,8 +533,22 @@ let get_candidates core_problem =
   (* let alllist = alllist_initial in *)
   let num_candidates = List.length alllist in
   let () = prerr_endline (Printf.sprintf "Compressed candidate list (%d elements)" num_candidates) in
+  alllist
+
+let get_candidates core_problem generate_from =
+  let id, size, (unops, binops, statements) = core_problem in
+  let cand_gen_start_time = Sys.time() in
+  let allowed = (unops, binops, statements) in
+
+  let db = create_db allowed in
+
+  let alllist_initial, db = gen2 allowed generate_from db in
+
+  let res = (cleanup_candidates alllist_initial), db in
+
   let start_time = Sys.time() in
   let cand_gen_time = start_time -. cand_gen_start_time in
   let _ = prerr_endline (Printf.sprintf "Candidate generation time:
   %fs" cand_gen_time) in
-  alllist
+
+  res

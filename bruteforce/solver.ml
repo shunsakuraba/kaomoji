@@ -48,16 +48,19 @@ let get_initialguess () =
   bitseq @ randseq
 (* bitseq @ fixedseq @ randseq in *)
 
-let solve core_problem accept_risk =
-  let id, size, (unops, binops, statements) = core_problem in
-  let alllist = Brute.get_candidates core_problem in
+let rec solve_internal accept_risk id size (unops, binops, statements) alllist db existing_inputs existing_outputs =
   if (List.length alllist) > 100000000 then
     prerr_endline "Abandoned: too many candidates."
   else
   let _ = prerr_endline "Requesting initial guess..." in
-  let initialguess = get_initialguess () in
   let start_time = Sys.time() in
-  let (status, outputs, message) = Remote.eval_id id initialguess in
+  let (status, outputs, message), initialguess =
+    if List.length existing_inputs = 0 then
+      let initialguess = get_initialguess () in
+      Remote.eval_id id initialguess, initialguess
+    else
+      (Remoteeval.EvalStatusOk, existing_outputs, "retry dayo-"), existing_inputs
+  in
   if status <> Remoteeval.EvalStatusOk then
     begin
       Printf.printf "Status: \"%s\"\n" (Remoteeval.print_eval_status status);
@@ -123,12 +126,25 @@ let solve core_problem accept_risk =
         try guess_submit ()
         with Again -> (Unix.sleep 20; guess_function x c)
       in
-      let _ = GuessCaller.guess_call (List.combine initialguess outputs)
-        guess_function
-        (unops, binops, statements)
-        size
-        alllist
-      in
-      let end_time = Sys.time() in
-      Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
+      try
+        let _ = GuessCaller.guess_call (List.combine initialguess outputs)
+          guess_function
+          (unops, binops, statements)
+          size
+          alllist
+        in
+        let end_time = Sys.time() in
+        Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
+      with Not_found ->
+        begin
+          let _ = Brute.expand_db (unops, binops, statements) db 10 in
+          let alllist = Brute.generate_candidates_from_db (unops, binops, statements) db in
+          let alllist = Brute.cleanup_candidates alllist in
+          solve_internal accept_risk id size (unops, binops, statements) alllist db initialguess outputs
+        end
     end
+
+let solve core_problem accept_risk generate_from =
+  let id, size, (unops, binops, statements) = core_problem in
+  let alllist, db = Brute.get_candidates core_problem generate_from in
+  solve_internal accept_risk id size (unops, binops, statements) alllist db [] []

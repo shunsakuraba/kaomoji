@@ -18,7 +18,10 @@ let rec guess_call eval_results feedback allowed depth candidates =
         end
       else
         consume xs
-    | _ -> failwith "No more candidates" in
+    | _ ->
+      prerr_endline "No more candidates";
+      raise Not_found
+  in
   consume candidates
 
 let guess_call_ initial feedback allowed depth alllist = 

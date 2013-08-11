@@ -2,7 +2,7 @@ let solve_one_problem problem =
   let _ = print_endline (Problem.format_problem problem 0) in
   let (id, size, ops, solved, time_left) = problem in
   let core_problem = (id, size, ops) in
-  Solver.solve core_problem false
+  Solver.solve core_problem false size
 
 let main =
   let _ = Random.self_init() in
