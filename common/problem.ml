@@ -46,6 +46,7 @@ let parse_problems_json = function
     raise Parse_error
 
 let format_problem (id, size, operators, solved, time_left) index =
+  (* id *)
   Printf.sprintf
     "%4d %s: %2d %s %s %f"
     index
