@@ -175,7 +175,12 @@ let gen2 (allowed_uns, allowed_bins, allowed_stmts) depth =
   Array.set
     groups
     1
-    ((Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))));
+    (if List.mem STfold allowed_stmts then
+        (Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids))
+     else if List.mem SFold allowed_stmts then
+        (Input, 0) :: ((Zero, 0) :: ((One, 0) :: (List.map (fun x -> ((Ident x), 1 lsl x)) ids)))
+     else
+        (Input, 0) :: ((Zero, 0) :: [(One, 0)]));
 
   for i = 2 to build do
     let target = ref (Array.get groups i) in
