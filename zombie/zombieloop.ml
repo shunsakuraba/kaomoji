@@ -231,7 +231,7 @@ let core_loop id size unops binops statements initial_candidates =
       else ()
     in
     if cost nops is_tfold > size || Hashtbl.mem visited nops 
-    then ()
+    then nop_change_loop ()
     else
       let () = Hashtbl.replace visited nops true in
       let (ich, och, pid) = open_solver size nops is_tfold in
