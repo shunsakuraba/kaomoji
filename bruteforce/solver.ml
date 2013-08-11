@@ -64,6 +64,21 @@ let solve core_problem =
       failwith "Eval returned error"
     end
   else
+    let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
+    output_string
+      child_out
+      (Printf.sprintf
+         "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+         id
+         size
+         (String.concat " " (List.map Type.unop_to_string unops))
+         (String.concat " " (List.map Type.binop_to_string binops))
+         (String.concat " " (List.map Type.statement_to_string statements))
+         (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
+         (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
+      );
+    flush child_out;
+
     let rec guess_function x c =
       Printf.eprintf
         "Guessed: %s\n"
@@ -77,6 +92,8 @@ let solve core_problem =
 	    begin
 	      match values with
 		  [input; output; _youroutput] -> 
+                    (* output_string child_out (Printf.sprintf "0x%016Lx 0x%016Lx\n" input output); *)
+                    (* flush child_out; *)
 		    Feedback.Fail (input, output)
 		| _ -> failwith "Should not happen: not three values"
 	    end
