@@ -1,6 +1,8 @@
 open ExtList
 open Type
 
+exception CandidateSizeLooksTooBigException
+
 let (@@) f x = f x
 
 let partition elms k =
@@ -324,8 +326,9 @@ let gen2 allowed_ops depth =
 
     let new_group = !target in
     let new_group_size = List.length new_group in
-    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build - i))) >= 100000000.0 then
-      failwith ("Give up: new_group_size=" ^ (string_of_int new_group_size));
+    if (float_of_int new_group_size) *. (3.0 ** (float_of_int(build -
+    i))) >= 100000000.0 then
+      raise CandidateSizeLooksTooBigException;
     Array.set groups i new_group;
     Printf.eprintf "  depth=%d size=%d\n" i new_group_size;
     flush_all ()
