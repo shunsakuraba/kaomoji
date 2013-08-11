@@ -8,7 +8,7 @@ let rand64 () =
 
 let is_match_ops_limit statements ops_limit =
   match ops_limit with
-    | "" | "bonus" ->
+    | "" | "bonus" | "superbonus" ->
       true
     | "fold" ->
       List.mem SFold statements

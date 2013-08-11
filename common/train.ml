@@ -77,10 +77,10 @@ let fetch_train size operators =
 
 let rec fetch_train_with_retry size operator =
   let train_string =
-    if operator = "bonus" then
-      fetch_train 42 ""
-    else
-      fetch_train size operator
+    match operator with
+	"bonus" -> fetch_train 42 ""
+      | "superbonus" -> fetch_train 137 ""
+      | _ -> fetch_train size operator
   in
   let train = parse_train_string train_string in
   let (t_id, t_size, t_ops, t_challenge) = train in
