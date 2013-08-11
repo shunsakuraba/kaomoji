@@ -12,15 +12,15 @@ let rec has_expr expr target =
       (has_expr a target) || (has_expr b target) || (has_expr c target)
     | k -> false
 
-let rec rep_expr expr target =
+let rec rep_expr expr target r =
   if expr = target then
-    Zero
+    r
   else
     match expr with
-    | Op1 (o, a) -> Op1 (o, rep_expr a target)
-    | Op2 (o, a, b) -> Op2 (o, rep_expr a target, rep_expr b target)
+    | Op1 (o, a) -> Op1 (o, rep_expr a target r)
+    | Op2 (o, a, b) -> Op2 (o, rep_expr a target r, rep_expr b target r)
     | If0 (a, b, c) ->
-      If0 (rep_expr a target, rep_expr b target, rep_expr c target)
+      If0 (rep_expr a target r, rep_expr b target r, rep_expr c target r)
     | k -> k
 
 let rec simp expr =
@@ -43,6 +43,8 @@ let rec simp expr =
     | Op2 (Plus, Zero, a) -> (simp a)
     | Op2 (Plus, a, b) when a = b -> Op1 (Shr1, simp a)
     | Op2 (And, _, Zero) -> Zero
+    | Op2 (And, Op1 (Shl1, _), One) -> Zero
+    | Op2 (And, One, Op1 (Shl1, _)) -> Zero
     | Op2 (And, a, b) when a = b -> (simp a)
     | Op2 (And, Op2 (And, a, b), c) when b = c ->
       Op2 (And, simp a, simp b)
@@ -88,8 +90,8 @@ let rec simp expr =
     | If0 (a, b, c) when b = c -> (simp b)
     | If0 (a, If0 (b, c, d), e) when a = b -> If0 (a, c, e)
     | If0 (a, b, If0 (c, d, e)) when a = c -> If0 (a, b, e)
-    | If0 (a, b, c) when (has_expr b a) -> If0 (a, rep_expr b a, c)
-    | If0 (a, b, c) when (has_expr c a) -> If0 (a, b, rep_expr c a)
+    | If0 (a, b, c) when (has_expr b a) -> If0 (a, rep_expr b a Zero, c)
+    | If0 (a, b, c) when (has_expr c a) -> If0 (a, b, rep_expr c a Zero)
     | If0 (a, b, c)  -> If0 (simp a, simp b, simp c)
     | k -> k
 
