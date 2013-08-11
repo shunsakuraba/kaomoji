@@ -108,6 +108,8 @@ let redundant = function
     | Op1 (Shr4, Op2 (Or, _, One)) -> true
     | Op1 (Shr16, Op2 (Or, One, _)) -> true
     | Op1 (Shr16, Op2 (Or, _, One)) -> true
+    | Op1 (Shr4, Op1 (Shl1, One)) -> true
+    | Op1 (Shr16, Op1 (Shl1, One)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
     (* | Op2 (Plus, a, b) when a = b -> true *)
@@ -129,16 +131,15 @@ let redundant = function
     | Op2 (Or, Op1 (Not, a), b) when a = b -> true
     | Op2 (Or, a, Op1 (Not, b)) when a = b -> true
     | Op2 (Or, Op2 (Or, a, b), c) when b = c -> true
+    | Op2 (Or, a, Op2 (Or, b, c)) when a = b -> true
     | Op2 (Xor, a, b) when a = b -> true
     | Op2 (Xor, a, Zero) -> true
     | Op2 (Xor, Zero, a) -> true
     | Op2 (Xor, Op1 (Not, Zero), a) -> true
     | Op2 (Xor, a, Op1 (Not, Zero)) -> true
     | Op2 (Xor, Op1 (Not, a), b) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c -> true  (* not in simplified *)
-    | Op2 (Xor, Op2 (Xor, a, b), c) when b = c -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b -> true  (* not in simplified *)
-    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = c -> true  (* not in simplified *)
+    | Op2 (Xor, Op2 (Xor, a, b), c) when a = c || b = c -> true  (* not in simplified *)
+    | Op2 (Xor, a, Op2 (Xor, b, c)) when a = b || a = c-> true  (* not in simplified *)
     | If0 (Zero, a, b) -> true
     | If0 (a, b, c) when a = b -> true
     | If0 (Op1 (Not, Zero), a, b) -> true
