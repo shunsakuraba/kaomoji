@@ -102,9 +102,9 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     | Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, Op1 (Shr4, a)))) -> List.mem Shr16 allowed_uns
     | Op1 (Shr16, One) -> true
     | Op1 (Shl1, Zero) -> true
-    | Op1 (Shr16, (Ident _)) -> true
-    | Op1 (Shr16, Op1 (Not, (Ident _))) -> true  (* Shr16 Not Zero *)
-    | Op1 (Shr4, Op1 (Shr4, (Ident _))) -> true
+    | Op1 (Shr16, (Ident 0)) -> true
+    | Op1 (Shr16, Op1 (Not, (Ident 0))) -> true  (* Shr16 Not Zero *)
+    | Op1 (Shr4, Op1 (Shr4, (Ident 0))) -> true
     | Op1 (Shr4, Op2 (And, One, _)) -> true
     | Op1 (Shr4, Op2 (And, _, One)) -> true
     | Op1 (Shr16, Op2 (And, One, _)) -> true
@@ -115,11 +115,11 @@ let redundant (allowed_uns, allowed_bins, allowed_stmts) = function
     (* | Op1 (Shr4, Op1 (Shr1, _)) -> true *)
     (* | Op1 (Shr16, Op1 (Shr4, _)) -> true *)
     | Op1 (shr, Op2 (o, One, _)) when
-	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
-	(o = Or || o = And) -> true
+        (shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+        (o = Or || o = And) -> true
     | Op1 (shr, Op2 (o, _, One)) when
-	(shr = Shr1 || shr = Shr4 || shr = Shr16) &&
-	(o = Or || o = And) -> true
+        (shr = Shr1 || shr = Shr4 || shr = Shr16) &&
+        (o = Or || o = And) -> true
     | Op1 (Not, Op1 (Not, _)) -> true
     | Op2 (Plus, a, Zero) -> true
     | Op2 (Plus, Zero, a) -> true
@@ -251,21 +251,14 @@ let gen2 allowed_ops depth =
                         List.iter
                           (fun (e2, e2_flag) ->
                             if e2_flag land fold_used_bit = 0 then
-                            List.iter
-                              (fun left ->
-                                List.iter
-                                  (fun right ->
-                                    if left <> right then
-                                      let new_node = Fold (e0, e1, left, right, e2) in
-                                      let new_flag =
-                                        e0_flag lor
-                                          e1_flag lor
-                                          (e2_flag land
-                                             (lnot ((1 lsr right) lor (1 lsl left)))) in
-                                      if not (redundancy_checker new_node) then
-                                        target := (new_node, new_flag):: !target)
-                                  ids)
-                              ids)
+                              let new_node = Fold (e0, e1, 0, 1, e2) in
+                              let new_flag =
+                                e0_flag lor
+                                  e1_flag lor
+                                  (e2_flag land
+                                     (lnot ((1 lsr 0) lor (1 lsl 1)))) in
+                              if not (redundancy_checker new_node) then
+                                target := (new_node, new_flag):: !target)
                           e2s)
                       e1s)
                   e0s

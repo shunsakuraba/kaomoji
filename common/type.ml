@@ -42,3 +42,21 @@ let statement_to_string = function
   | SIf0 -> "if0"
   | SFold -> "fold"
   | STfold -> "tfold"
+
+let unop_to_cstring = function
+  | Not -> "Not"
+  | Shl1 -> "Shl1"
+  | Shr1 -> "Shr1"
+  | Shr4 -> "Shr4"
+  | Shr16 -> "Shr16"
+
+let binop_to_cstring = function
+  | And -> "And"
+  | Or -> "Or"
+  | Xor -> "Xor"
+  | Plus -> "Plus"
+
+let statement_to_cstring = function
+  | SIf0 -> "SIf0"
+  | SFold -> "SFold"
+  | STfold -> "STfold"

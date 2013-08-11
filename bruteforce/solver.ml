@@ -79,6 +79,17 @@ let solve core_problem =
       );
     flush child_out;
 
+    prerr_endline
+      (Printf.sprintf
+         "(\"%s\",\n%d,\n([%s],\n[%s],\n[%s]),\n[%s],\n[%s])\n"
+         id
+         size
+         (String.concat "; " (List.map Type.unop_to_cstring unops))
+         (String.concat "; " (List.map Type.binop_to_cstring binops))
+         (String.concat "; " (List.map Type.statement_to_cstring statements))
+         (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") initialguess))
+         (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") outputs)));
+
     let rec guess_function x c =
       Printf.eprintf
         "Guessed: %s\n"
