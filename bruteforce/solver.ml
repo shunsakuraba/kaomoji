@@ -137,7 +137,7 @@ let rec solve_internal accept_risk id size (unops, binops, statements) alllist d
         Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
       with Not_found ->
         begin
-          let _ = Brute.expand_db (unops, binops, statements) db 10 in
+          let _ = Brute.expand_db (unops, binops, statements) db (DynArray.length db) in
           let alllist = Brute.generate_candidates_from_db (unops, binops, statements) db in
           let alllist = Brute.cleanup_candidates alllist in
           solve_internal accept_risk id size (unops, binops, statements) alllist db initialguess outputs
