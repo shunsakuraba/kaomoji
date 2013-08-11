@@ -64,42 +64,45 @@ let solve core_problem accept_risk =
       failwith "Eval returned error"
     end
   else
-    if accept_risk then
-      let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
-      output_string
-	child_out
-	(Printf.sprintf
-           "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+    begin
+      if accept_risk then
+        begin
+          let child_in, child_out = Unix.open_process "/usr/bin/tee submission.log" in
+          output_string
+	    child_out
+	    (Printf.sprintf
+               "%s\n%d\n%s\n%s\n%s\n%s\n%s\n"
+               id
+               size
+               (String.concat " " (List.map Type.unop_to_string unops))
+               (String.concat " " (List.map Type.binop_to_string binops))
+               (String.concat " " (List.map Type.statement_to_string statements))
+               (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
+               (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
+	    );
+          flush child_out
+        end;
+
+      prerr_endline
+        (Printf.sprintf
+           "Case OCaml dump:\n(\"%s\",\n%d,\n([%s], [%s], [%s]),\n[%s],\n[%s])\n"
            id
            size
-           (String.concat " " (List.map Type.unop_to_string unops))
-           (String.concat " " (List.map Type.binop_to_string binops))
-           (String.concat " " (List.map Type.statement_to_string statements))
-           (String.concat " " (List.map (Printf.sprintf "0x%016Lx") initialguess))
-           (String.concat " " (List.map (Printf.sprintf "0x%016Lx") outputs))
-	);
-      flush child_out;
+           (String.concat "; " (List.map Type.unop_to_cstring unops))
+           (String.concat "; " (List.map Type.binop_to_cstring binops))
+           (String.concat "; " (List.map Type.statement_to_cstring statements))
+           (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") initialguess))
+           (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") outputs)));
 
-    prerr_endline
-      (Printf.sprintf
-         "(\"%s\",\n%d,\n([%s],\n[%s],\n[%s]),\n[%s],\n[%s])\n"
-         id
-         size
-         (String.concat "; " (List.map Type.unop_to_cstring unops))
-         (String.concat "; " (List.map Type.binop_to_cstring binops))
-         (String.concat "; " (List.map Type.statement_to_cstring statements))
-         (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") initialguess))
-         (String.concat "; " (List.map (Printf.sprintf "0x%016LxL") outputs)));
-
-    let rec guess_function x c =
-      Printf.eprintf
-        "Guessed: %s\n"
-        (Print.print x);
-      let guess_submit () = 
-	let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
-	print_endline message;
-	match status with
-	    GuessStatusWin -> Feedback.Success
+      let rec guess_function x c =
+        Printf.eprintf
+          "Guessed: %s\n"
+          (Print.print x);
+        let guess_submit () = 
+	  let (status, values, message, _lightning) = Remote.guess id (Print.print x) in
+	  print_endline message;
+	  match status with
+	      GuessStatusWin -> Feedback.Success
 	  | GuessStatusMismatch -> 
 	    begin
 	      match values with
@@ -111,15 +114,16 @@ let solve core_problem accept_risk =
 	    end
 	  | GuessStatusError -> raise Again
 	  | st -> failwith "Unknown status."
+        in
+        try guess_submit ()
+        with Again -> (Unix.sleep 20; guess_function x c)
       in
-      try guess_submit ()
-      with Again -> (Unix.sleep 20; guess_function x c)
-    in
-    let _ = GuessCaller.guess_call (List.combine initialguess outputs)
-      guess_function
-      (unops, binops, statements)
-      size
-      alllist
-    in
-    let end_time = Sys.time() in
-    Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
+      let _ = GuessCaller.guess_call (List.combine initialguess outputs)
+        guess_function
+        (unops, binops, statements)
+        size
+        alllist
+      in
+      let end_time = Sys.time() in
+      Printf.eprintf "Execution time: %fs\n" (end_time -. start_time)
+    end
