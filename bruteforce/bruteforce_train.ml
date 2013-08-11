@@ -3,11 +3,13 @@ let main =
   let operators = ref "" in
   let mode = ref "train" in
   let generate_from = ref 0 in
+  let risk_mode = ref false in
 
   Arg.parse
     [("-size", Arg.Set_int(size), "Size");
      ("-operators", Arg.Set_string(operators), "Operators");
      ("-mode", Arg.Set_string(mode), "Mode");
+     ("-risk", Arg.Set(risk_mode), "Risk mode");
      ("-generate_from", Arg.Set_int(generate_from), "Generate start depth")]
     (fun x -> ())
     "help me";
@@ -18,4 +20,4 @@ let main =
   let _ = Random.self_init() in
   let core_problem = Remote.fetch_one_core_problem !size !operators !mode in
   let () = print_endline (Remote.format_core_problem core_problem) in
-  Solver.solve core_problem false !generate_from
+  Solver.solve core_problem !risk_mode !generate_from
